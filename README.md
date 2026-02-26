@@ -3,11 +3,27 @@
 ## Stack
 - Leptos
 - Axum
+- sqlx (or diesel?) (or just json files?)
+- SQLite
 - async-graphql
 - Vega-Lite
-- SurrealDB
 
 # Leptos + Axum
+## Prerequisites
+- Rust/Rustup
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+- NodeJS/NPM
+
+## Install
+```bash
+cargo install --locked cargo-leptos
+rustup target add wasm32-unknown-unknown
+```
+
+
+
 ## Running your project
 
 ```bash

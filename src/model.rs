@@ -1,68 +1,77 @@
-use chrono::prelude::*;
+use time::OffsetDateTime;
 use serde::{Serialize, Deserialize};
+
 use async_graphql::*;
 
-#[derive(SimpleObject, Serialize, Deserialize)]
+use sqlx::FromRow;
+use sqlx::{sqlite::SqlitePool};
+
+
+// Models: SQL table schema
+
+#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
 pub struct Server {
-    name: String,
-    address: String,
-    username: String,
-}
-
-#[derive(SimpleObject, Serialize, Deserialize)]
-pub struct Project {
-    name: String,
-    created_at: DateTime<Utc>,
-    // files: Vec<String>,
-    // runs: Vec<Run>,
-}
-
-#[derive(SimpleObject, Serialize, Deserialize)]
-pub struct Run {
-    id: String,
-    name: String,
-    notes: String,
-    config: String,
-    created_at: DateTime<Utc>,
-
-    server: Server,
-    remote_directory: String,
-    local_directory: String,
-    files: Vec<String>,
+    pub id: i64,
+    pub name: String,
+    pub address: String,
+    pub username: String,
+    //  !TODO a run script, can be different for Nek5000 and NekRS?
     
+    pub remote_directory: String, // Default prefix for each new run
+    // pub run_script: String // TODO
 }
 
-#[derive(SimpleObject)]
-pub struct Series {
-    id: String,
-    name: String,
-    notes: String,
-    config: String,
+#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
+#[graphql(complex)]
+pub struct Project {
+    pub id: i64,
+    pub name: String,
+    pub created_at: OffsetDateTime,
+    
+    pub local_directory: String,  // Default prefix for each new run
+    //  TODO an initial script to generate mesh, parameters, etc.
 
-    server: Server,
-    remote_dir: String,
-    local_dir: String,
-    files: Vec<String>,
+    pub src_directory: String,
+    pub post_files_json: String,   // JSON of a list of files to copy to server
+    pub get_files_json: String,    // JSON of a list of files to retrieve from server
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
+pub struct Run {
+    pub id: i64,
+    pub name: String,
+    pub created_at: OffsetDateTime,
+    pub project_id: i64,
+    pub server_id: i64,
+
+    pub remote_directory: String,
+    pub local_directory: String,
+
+    pub post_files_json: String,   // JSON of a list of files to copy to server
+    pub get_files_json: String,    // JSON of a list of files to retrieve from server
+    pub config_json: String,
+    pub notes: String,
 }
 
 
 
 
-pub struct QueryRoot;
 
-#[Object]
-impl QueryRoot {
-    async fn getProject(
-        &self,
-        name: String
-    ) -> Project {
-        Project { name: "test".to_string(), created_at: Utc::now() }
-    }
-}
 
+// Additional properties for graphql
+
+#[ComplexObject]
 impl Project {
-    pub fn new() -> Self {
-        Project { name: "test".to_string(), created_at: Utc::now() }
+    async fn runs(&self, ctx: &Context<'_>) -> Result<Vec<Run>> {
+        let pool = ctx.data_unchecked::<SqlitePool>();
+
+        let runs = sqlx::query_as::<_, Run>(
+            "SELECT * FROM run WHERE project_id = ?"
+        )
+        .bind(self.id)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(runs.into_iter().map(Run::from).collect())
     }
 }
-

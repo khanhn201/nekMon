@@ -1,4 +1,19 @@
+#![allow(non_snake_case)]
+
+
+
 pub mod app;
+
+#[cfg(feature = "ssr")]
+pub mod configuration;
+#[cfg(feature = "ssr")]
+pub mod database;
+#[cfg(feature = "ssr")]
+pub mod schema;
+#[cfg(feature = "ssr")]
+pub mod model;
+
+
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]

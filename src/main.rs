@@ -1,59 +1,54 @@
-
-use async_graphql::{EmptyMutation, EmptySubscription, Schema, http::GraphiQLSource};
-use async_graphql_axum::GraphQL;
 use axum::{
     Router,
     response::{self, IntoResponse},
     routing::get,
 };
-use tokio::net::TcpListener;
 
-mod model;
-use model::*;
+use leptos::logging::log;
+use leptos::prelude::*;
+use leptos_axum::{generate_route_list, LeptosRoutes};
 
-async fn graphiql() -> impl IntoResponse {
-    response::Html(GraphiQLSource::build().endpoint("/").finish())
-}
+use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
+use async_graphql_axum::GraphQL;
+
+use nekMon::schema::*;
+use nekMon::app::*;
+use nekMon::database::open_db;
+
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use axum::Router;
-    use leptos::logging::log;
-    use leptos::prelude::*;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
-    use nekMon::app::*;
+    let pool = open_db().await.expect("Failed to open DB");
 
     let conf = get_configuration(None).unwrap();
-    let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
-    // Generate the list of routes in your Leptos App
+    let addr = leptos_options.site_addr;
+
     let routes = generate_route_list(App);
 
-    // let app = Router::new()
-    //     .leptos_routes(&leptos_options, routes, {
-    //         let leptos_options = leptos_options.clone();
-    //         move || shell(leptos_options.clone())
-    //     })
-    //     .fallback(leptos_axum::file_and_error_handler(shell))
-    //     .with_state(leptos_options);
-    //
-    // // run our app with hyper
-    // // `axum::Server` is a re-export of `hyper::Server`
-    // log!("listening on http://{}", &addr);
-    // let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    // axum::serve(listener, app.into_make_service())
-    //     .await
-    //     .unwrap();
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-        .data(Project::new())
+    async fn graphiql() -> impl IntoResponse {
+        response::Html(GraphiQLSource::build().endpoint("/graphql").finish())
+    }
+    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(pool)
         .finish();
+    let graphql_handler = GraphQL::new(schema);
 
-    let app = Router::new().route("/", get(graphiql).post_service(GraphQL::new(schema)));
+    let app = Router::new()
+        .leptos_routes(&leptos_options, routes, {
+            let leptos_options = leptos_options.clone();
+            move || shell(leptos_options.clone())
+        })
+        .fallback(leptos_axum::file_and_error_handler(shell))
+        .with_state(leptos_options)
+        .route("/graphql", get(graphiql).post_service(graphql_handler));
 
-    println!("GraphiQL IDE: http://localhost:8000");
-
-    axum::serve(TcpListener::bind("127.0.0.1:8000").await.unwrap(), app)
+    // run our app with hyper
+    // `axum::Server` is a re-export of `hyper::Server`
+    log!("listening on http://{}", &addr);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    axum::serve(listener, app.into_make_service())
         .await
         .unwrap();
 }

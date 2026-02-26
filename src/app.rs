@@ -41,6 +41,7 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
                     <Route path=StaticSegment("") view=HomePage/>
+                    <Route path=StaticSegment("/test") view=TomePage/>
                 </Routes>
             </main>
         </Router>
@@ -57,5 +58,16 @@ fn HomePage() -> impl IntoView {
     view! {
         <h1>"Welcome to Leptos!"</h1>
         <button on:click=on_click>"Click Me: " {count}</button>
+    }
+}
+#[component]
+fn TomePage() -> impl IntoView {
+    // Creates a reactive value to update the button
+    let count = RwSignal::new(0);
+    let on_click = move |_| *count.write() += 1;
+
+    view! {
+        <h1>"Welcome to Leptos!"</h1>
+        <button on:click=on_click>"Tlick Me: " {count}</button>
     }
 }
