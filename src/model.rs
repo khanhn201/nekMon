@@ -15,6 +15,7 @@ pub struct Server {
     pub name: String,
     pub address: String,
     pub username: String,
+    pub key_file_path: String,
     //  !TODO a run script, can be different for Nek5000 and NekRS?
     
     pub remote_directory: String, // Default prefix for each new run

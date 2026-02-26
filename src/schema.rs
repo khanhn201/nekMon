@@ -1,47 +1,10 @@
 use rand::distr::{SampleString,Alphanumeric};
 
-use time::OffsetDateTime;
-
-use async_graphql::*;
+use async_graphql::{Result, Context, Object};
 
 use sqlx::{SqlitePool};
 
 use crate::model::*;
-
-
-#[derive(InputObject)]
-pub struct UpdateProjectInput {
-    pub id: i64,
-    #[graphql(validator(regex="^[a-zA-Z0-9_-]+$"))]
-    pub name: Option<String>,
-    pub src_directory: Option<String>,
-    pub local_directory: Option<String>,
-    pub post_file_json: Option<String>,
-    pub get_file_json: Option<String>,
-}
-
-#[derive(InputObject)]
-pub struct UpdateServerInput {
-    pub id: i64,
-    pub name: Option<String>,
-    pub address:  Option<String>,
-    pub username:  Option<String>,
-    pub remote_directory:  Option<String>,
-}
-
-#[derive(InputObject)]
-pub struct UpdateRunInput {
-    pub id: i64,
-    #[graphql(validator(regex="^[a-zA-Z0-9_-]+$"))]
-    pub name: Option<String>,
-    pub remote_directory:  Option<String>,
-    pub local_directory:  Option<String>,
-    pub post_file_json: Option<String>,
-    pub get_file_json: Option<String>,
-    pub config: Option<String>,
-    pub notes: Option<String>,
-}
-
 
 
 
@@ -107,15 +70,16 @@ impl MutationRoot {
     async fn create_server(
         &self,
         ctx: &Context<'_>,
+        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
         name: String,
         address: String,
         username: String,
-    ) -> Result<Server> { // TODO: Allow alias
+    ) -> Result<Server> {
         let pool = ctx.data_unchecked::<SqlitePool>();
         let server = sqlx::query_as(
-            "INSERT INTO server (name, address, username, remote_directory)
-             VALUES (?, ?, ?, '')
-             RETURNING *"
+            r#"INSERT INTO server (name, address, username)
+             VALUES (?, ?, ?)
+             RETURNING *"#
         )
         .bind(&name).bind(&address).bind(&username)
         .fetch_one(pool).await?;
@@ -124,16 +88,16 @@ impl MutationRoot {
     async fn create_project(
         &self,
         ctx: &Context<'_>,
-        #[graphql(validator(regex="^[a-zA-Z0-9_-]+$"))] name: String,
+        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
+        name: String,
     ) -> Result<Project> {
         let pool = ctx.data_unchecked::<SqlitePool>();
-        let created_at = OffsetDateTime::now_utc();
         let project = sqlx::query_as(
-            "INSERT INTO project (name, created_at, local_directory, src_directory, post_files_json, get_files_json)
-             VALUES (?, ?, '', '', '', '')
-             RETURNING *"
+            r#"INSERT INTO project (name)
+             VALUES (?)
+             RETURNING *"#
         )
-        .bind(&name).bind(created_at)
+        .bind(&name)
         .fetch_one(pool).await?;
 
         Ok(project)
@@ -145,9 +109,7 @@ impl MutationRoot {
         server_id: i64,
     ) -> Result<Run> {
         let pool = ctx.data_unchecked::<SqlitePool>();
-        let name = Alphanumeric.sample_string(&mut rand::rng(), 8);
-
-        let created_at = OffsetDateTime::now_utc();
+        let name = Alphanumeric.sample_string(&mut rand::rng(), 8); // TODO
         
         let project: Project = sqlx::query_as(
             "SELECT * FROM project WHERE id = ?"
@@ -161,15 +123,13 @@ impl MutationRoot {
         .bind(server_id)
         .fetch_one(pool)
         .await?;
-        
-        
+        // TODO: error if directory not set
         let remote_directory = format!(
             "{}/{}/{}",
             server.remote_directory.trim_end_matches('/'),
             project.name,
             name
         );
-
         let local_directory = format!(
             "{}/{}",
             project.local_directory.trim_end_matches('/'),
@@ -177,11 +137,11 @@ impl MutationRoot {
         );
 
         let run = sqlx::query_as(
-            "INSERT INTO run (name, created_at, project_id, server_id, remote_directory, local_directory, post_files_json, get_files_json, config_json, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, '', '')
-             RETURNING *"
+            r#"INSERT INTO run (name, project_id, server_id, remote_directory, local_directory, post_files_json, get_files_json)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             RETURNING *"#
         )
-        .bind(name).bind(created_at).bind(project_id).bind(server_id).bind(remote_directory).bind(local_directory)
+        .bind(name).bind(project_id).bind(server_id).bind(remote_directory).bind(local_directory)
         .bind(project.post_files_json).bind(project.get_files_json)
         .fetch_one(pool).await?;
 
@@ -191,9 +151,16 @@ impl MutationRoot {
     async fn update_server(
         &self,
         ctx: &Context<'_>,
-        input: UpdateServerInput,
+        id: i64,
+        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
+        name: Option<String>,
+        address:  Option<String>,
+        username:  Option<String>,
+        remote_directory:  Option<String>,
+        key_file_path: Option<String>,
     ) -> Result<Server> {
         let pool = ctx.data_unchecked::<SqlitePool>();
+        // TODO: error if directory not valid
 
         let server = sqlx::query_as::<_, Server>(
             r#"
@@ -202,16 +169,18 @@ impl MutationRoot {
                 name = COALESCE(?, name),
                 address = COALESCE(?, address),
                 username = COALESCE(?, username),
-                remote_directory = COALESCE(?, remote_directory)
+                remote_directory = COALESCE(?, remote_directory),
+                key_file_path = COALESCE(?, key_file_path)
             WHERE id = ?
             RETURNING *
             "#
         )
-        .bind(input.name)
-        .bind(input.address)
-        .bind(input.username)
-        .bind(input.remote_directory)
-        .bind(input.id)
+        .bind(name)
+        .bind(address)
+        .bind(username)
+        .bind(remote_directory)
+        .bind(key_file_path)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -221,7 +190,13 @@ impl MutationRoot {
     async fn update_project(
         &self,
         ctx: &Context<'_>,
-        input: UpdateProjectInput,
+        id: i64,
+        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
+        name: Option<String>,
+        src_directory: Option<String>,
+        local_directory: Option<String>,
+        post_file_json: Option<String>,
+        get_file_json: Option<String>,
     ) -> Result<Project> {
         let pool = ctx.data_unchecked::<SqlitePool>();
 
@@ -238,12 +213,12 @@ impl MutationRoot {
             RETURNING *
             "#
         )
-        .bind(input.name)
-        .bind(input.src_directory)
-        .bind(input.local_directory)
-        .bind(input.post_file_json)
-        .bind(input.get_file_json)
-        .bind(input.id)
+        .bind(name)
+        .bind(src_directory)
+        .bind(local_directory)
+        .bind(post_file_json)
+        .bind(get_file_json)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -253,7 +228,15 @@ impl MutationRoot {
     async fn update_run(
         &self,
         ctx: &Context<'_>,
-        input: UpdateRunInput,
+        id: i64,
+        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
+        name: Option<String>,
+        remote_directory:  Option<String>,
+        local_directory:  Option<String>,
+        post_file_json: Option<String>,
+        get_file_json: Option<String>,
+        config: Option<String>,
+        notes: Option<String>,
     ) -> Result<Run> {
         let pool = ctx.data_unchecked::<SqlitePool>();
 
@@ -272,14 +255,14 @@ impl MutationRoot {
             RETURNING *
             "#
         )
-        .bind(input.name)
-        .bind(input.remote_directory)
-        .bind(input.local_directory)
-        .bind(input.post_file_json)
-        .bind(input.get_file_json)
-        .bind(input.config)
-        .bind(input.notes)
-        .bind(input.id)
+        .bind(name)
+        .bind(remote_directory)
+        .bind(local_directory)
+        .bind(post_file_json)
+        .bind(get_file_json)
+        .bind(config)
+        .bind(notes)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 

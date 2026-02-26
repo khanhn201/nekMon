@@ -8,7 +8,8 @@ CREATE TABLE server (
     name                TEXT NOT NULL UNIQUE,
     address             TEXT NOT NULL,
     username            TEXT NOT NULL,
-    remote_directory    TEXT NOT NULL
+    remote_directory    TEXT NOT NULL DEFAULT '',
+    key_file_path       TEXT NOT NULL DEFAULT ''
 );
 
 -- ========================
@@ -17,11 +18,11 @@ CREATE TABLE server (
 CREATE TABLE project (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
     name                    TEXT NOT NULL UNIQUE,
-    created_at              TEXT NOT NULL,
-    local_directory         TEXT NOT NULL,
-    src_directory           TEXT NOT NULL,
-    post_files_json         TEXT NOT NULL,
-    get_files_json          TEXT NOT NULL
+    created_at              TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    local_directory         TEXT NOT NULL DEFAULT '',
+    src_directory           TEXT NOT NULL DEFAULT '',
+    post_files_json         TEXT NOT NULL DEFAULT '',
+    get_files_json          TEXT NOT NULL DEFAULT ''
 );
 
 -- ========================
@@ -30,18 +31,18 @@ CREATE TABLE project (
 CREATE TABLE run (
     id                      INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id              INTEGER NOT NULL,
+    server_id               INTEGER NOT NULL,
 
     name                    TEXT    NOT NULL UNIQUE,
-    notes                   TEXT    NOT NULL,
-    config_json             TEXT    NOT NULL,
-    created_at              TEXT    NOT NULL,
+    notes                   TEXT    NOT NULL DEFAULT '',
+    config_json             TEXT    NOT NULL DEFAULT '',
+    created_at              TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    server_id               INTEGER NOT NULL,
-    remote_directory        TEXT    NOT NULL,
-    local_directory         TEXT    NOT NULL,
+    remote_directory        TEXT    NOT NULL DEFAULT '',
+    local_directory         TEXT    NOT NULL DEFAULT '',
 
-    post_files_json         TEXT NOT NULL,
-    get_files_json          TEXT NOT NULL,
+    post_files_json         TEXT    NOT NULL DEFAULT '',
+    get_files_json          TEXT    NOT NULL DEFAULT '',
 
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
     FOREIGN KEY(server_id) REFERENCES server(id) ON DELETE RESTRICT

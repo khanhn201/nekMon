@@ -3,7 +3,8 @@
 ## Stack
 - Leptos
 - Axum
-- sqlx (or diesel?) (or just json files?)
+- sqlx
+- async-ssh2-tokio
 - SQLite
 - async-graphql
 - Vega-Lite

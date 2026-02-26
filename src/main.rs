@@ -8,18 +8,28 @@ use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
+use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
 use async_graphql_axum::GraphQL;
 
 use nekMon::schema::*;
 use nekMon::app::*;
-use nekMon::database::open_db;
+use nekMon::ssh::*;
 
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    let pool = open_db().await.expect("Failed to open DB");
+    let _ssh_client = SSHClient::new().await.unwrap();
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect("sqlite:nekMon.db?mode=rwc") // TODO: configurable
+        .await.unwrap();
+    
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run migrations");
 
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;

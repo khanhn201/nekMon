@@ -12,6 +12,8 @@ pub mod database;
 pub mod schema;
 #[cfg(feature = "ssr")]
 pub mod model;
+#[cfg(feature = "ssr")]
+pub mod ssh;
 
 
 

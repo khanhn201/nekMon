@@ -22,7 +22,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 time = { version = "0.3.47", features = ["serde-human-readable"] }
 sqlx = { version = "0.8.6", features = ["sqlite", "time", "derive", "migrate", "runtime-tokio", "tls-native-tls"], optional = true }
 regex = "1.12.3"
-rand = { version = "0.10.0", optional = true }
+rand = { version = "0.9", optional = true }
+async-ssh2-tokio = { version = "0.12.2", optional = true }
 
 [features]
 hydrate = [
@@ -36,10 +37,12 @@ ssr = [
     "dep:leptos_axum",
     "sqlx",
     "rand",
+    "async-ssh2-tokio",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
 ]
+rand = ["dep:rand"]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
