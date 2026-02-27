@@ -24,6 +24,7 @@ sqlx = { version = "0.8.6", features = ["sqlite", "time", "derive", "migrate", "
 regex = "1.12.3"
 rand = { version = "0.9", optional = true }
 async-ssh2-tokio = { version = "0.12.2", optional = true }
+dashmap = { version = "6.1.0", optional = true }
 
 [features]
 hydrate = [
@@ -37,12 +38,14 @@ ssr = [
     "dep:leptos_axum",
     "sqlx",
     "rand",
+    "dashmap",
     "async-ssh2-tokio",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
 ]
 rand = ["dep:rand"]
+dashmap = ["dep:dashmap"]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]

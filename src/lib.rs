@@ -7,7 +7,7 @@ pub mod app;
 #[cfg(feature = "ssr")]
 pub mod configuration;
 #[cfg(feature = "ssr")]
-pub mod database;
+pub mod app_state;
 #[cfg(feature = "ssr")]
 pub mod schema;
 #[cfg(feature = "ssr")]

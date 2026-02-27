@@ -4,16 +4,17 @@ use serde::{Serialize, Deserialize};
 use async_graphql::*;
 
 use sqlx::FromRow;
-use sqlx::{sqlite::SqlitePool};
 
 
 // Models: SQL table schema
 
 #[derive(SimpleObject, Serialize, Deserialize, FromRow)]
+#[graphql(complex)]
 pub struct Server {
     pub id: i64,
     pub name: String,
     pub address: String,
+    pub port: u16,
     pub username: String,
     pub key_file_path: String,
     //  !TODO a run script, can be different for Nek5000 and NekRS?
@@ -52,27 +53,4 @@ pub struct Run {
     pub get_files_json: String,    // JSON of a list of files to retrieve from server
     pub config_json: String,
     pub notes: String,
-}
-
-
-
-
-
-
-// Additional properties for graphql
-
-#[ComplexObject]
-impl Project {
-    async fn runs(&self, ctx: &Context<'_>) -> Result<Vec<Run>> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
-
-        let runs = sqlx::query_as::<_, Run>(
-            "SELECT * FROM run WHERE project_id = ?"
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(runs.into_iter().map(Run::from).collect())
-    }
 }

@@ -23,6 +23,10 @@ cargo install --locked cargo-leptos
 rustup target add wasm32-unknown-unknown
 ```
 
+## Todo
+- [ ] SSH multiplexing
+- [ ] SSH interactive
+
 
 
 ## Running your project

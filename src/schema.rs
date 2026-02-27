@@ -1,10 +1,12 @@
-use rand::distr::{SampleString,Alphanumeric};
+use std::sync::Arc;
 
-use async_graphql::{Result, Context, Object};
+use rand::distr::{SampleString,Alphanumeric,Alphabetic};
 
-use sqlx::{SqlitePool};
+use async_graphql::*;
 
 use crate::model::*;
+use crate::app_state::AppState;
+use crate::ssh::SSHClient;
 
 
 
@@ -16,7 +18,8 @@ impl QueryRoot {
         ctx: &Context<'_>,
         name: String,
     ) -> Result<Project> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let project: Project = sqlx::query_as(
             "SELECT * FROM project WHERE name = ?"
         )
@@ -29,7 +32,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Project>> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let projects: Vec<Project> = sqlx::query_as(
             "SELECT * FROM project"
         )
@@ -41,7 +45,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Run>> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let runs: Vec<Run> = sqlx::query_as(
             "SELECT * FROM run"
         )
@@ -53,7 +58,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Server>> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let servers: Vec<Server> = sqlx::query_as(
             "SELECT * FROM server"
         )
@@ -75,7 +81,8 @@ impl MutationRoot {
         address: String,
         username: String,
     ) -> Result<Server> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let server = sqlx::query_as(
             r#"INSERT INTO server (name, address, username)
              VALUES (?, ?, ?)
@@ -91,7 +98,8 @@ impl MutationRoot {
         #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
         name: String,
     ) -> Result<Project> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         let project = sqlx::query_as(
             r#"INSERT INTO project (name)
              VALUES (?)
@@ -108,8 +116,9 @@ impl MutationRoot {
         project_id: i64,
         server_id: i64,
     ) -> Result<Run> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
-        let name = Alphanumeric.sample_string(&mut rand::rng(), 8); // TODO
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
+        let name = Alphabetic.sample_string(&mut rand::rng(), 1) + &Alphanumeric.sample_string(&mut rand::rng(), 7);
         
         let project: Project = sqlx::query_as(
             "SELECT * FROM project WHERE id = ?"
@@ -125,13 +134,13 @@ impl MutationRoot {
         .await?;
         // TODO: error if directory not set
         let remote_directory = format!(
-            "{}/{}/{}",
+            "{}/{}/{}/",
             server.remote_directory.trim_end_matches('/'),
             project.name,
             name
         );
         let local_directory = format!(
-            "{}/{}",
+            "{}/{}/",
             project.local_directory.trim_end_matches('/'),
             name
         );
@@ -158,8 +167,10 @@ impl MutationRoot {
         username:  Option<String>,
         remote_directory:  Option<String>,
         key_file_path: Option<String>,
+        port: Option<u16>,
     ) -> Result<Server> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
         // TODO: error if directory not valid
 
         let server = sqlx::query_as::<_, Server>(
@@ -170,17 +181,14 @@ impl MutationRoot {
                 address = COALESCE(?, address),
                 username = COALESCE(?, username),
                 remote_directory = COALESCE(?, remote_directory),
-                key_file_path = COALESCE(?, key_file_path)
+                key_file_path = COALESCE(?, key_file_path),
+                port = COALESCE(?, port)
             WHERE id = ?
             RETURNING *
             "#
         )
-        .bind(name)
-        .bind(address)
-        .bind(username)
-        .bind(remote_directory)
-        .bind(key_file_path)
-        .bind(id)
+        .bind(name).bind(address).bind(username).bind(remote_directory)
+        .bind(key_file_path).bind(port).bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -198,7 +206,8 @@ impl MutationRoot {
         post_file_json: Option<String>,
         get_file_json: Option<String>,
     ) -> Result<Project> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
 
         let project = sqlx::query_as::<_, Project>(
             r#"
@@ -213,12 +222,8 @@ impl MutationRoot {
             RETURNING *
             "#
         )
-        .bind(name)
-        .bind(src_directory)
-        .bind(local_directory)
-        .bind(post_file_json)
-        .bind(get_file_json)
-        .bind(id)
+        .bind(name).bind(src_directory).bind(local_directory)
+        .bind(post_file_json).bind(get_file_json).bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -238,7 +243,8 @@ impl MutationRoot {
         config: Option<String>,
         notes: Option<String>,
     ) -> Result<Run> {
-        let pool = ctx.data_unchecked::<SqlitePool>();
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
 
         let run = sqlx::query_as::<_, Run>(
             r#"
@@ -255,18 +261,58 @@ impl MutationRoot {
             RETURNING *
             "#
         )
-        .bind(name)
-        .bind(remote_directory)
-        .bind(local_directory)
-        .bind(post_file_json)
-        .bind(get_file_json)
-        .bind(config)
-        .bind(notes)
-        .bind(id)
+        .bind(name).bind(remote_directory).bind(local_directory)
+        .bind(post_file_json).bind(get_file_json).bind(config)
+        .bind(notes).bind(id)
         .fetch_one(pool)
         .await?;
 
         Ok(run)
     }
 
+}
+
+// Additional resolvers
+
+#[ComplexObject]
+impl Project {
+    async fn runs(&self, ctx: &Context<'_>) -> Result<Vec<Run>> {
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let pool = &app_state.pool;
+
+        let runs = sqlx::query_as::<_, Run>(
+            "SELECT * FROM run WHERE project_id = ?"
+        )
+        .bind(self.id)
+        .fetch_all(pool)
+        .await?;
+
+        Ok(runs.into_iter().map(Run::from).collect())
+    }
+}
+
+#[ComplexObject]
+impl Server {
+    async fn alive(&self, ctx: &Context<'_>) -> Result<bool> {
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let servers = &app_state.servers;
+        
+        if let Some(ssh_client_ref) = servers.get(&self.id) {
+            return match ssh_client_ref.ping().await.is_ok() {
+                true => Ok(true),
+                false => {
+                    servers.remove(&self.id);
+                    return Ok(false);
+                }
+            }
+        }
+
+        match SSHClient::new(self).await {
+            Ok(client) => {
+                servers.insert(self.id, Arc::new(client));
+                Ok(true)
+            }
+            Err(_) => Ok(false),
+        }
+    }
 }

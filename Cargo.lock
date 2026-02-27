@@ -2506,6 +2506,7 @@ dependencies = [
  "async-ssh2-tokio",
  "axum",
  "console_error_panic_hook",
+ "dashmap",
  "leptos",
  "leptos_axum",
  "leptos_meta",

@@ -8,6 +8,7 @@ CREATE TABLE server (
     name                TEXT NOT NULL UNIQUE,
     address             TEXT NOT NULL,
     username            TEXT NOT NULL,
+    port                INTEGER NOT NULL DEFAULT 22,
     remote_directory    TEXT NOT NULL DEFAULT '',
     key_file_path       TEXT NOT NULL DEFAULT ''
 );

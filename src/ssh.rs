@@ -1,3 +1,4 @@
+use tokio::time::{timeout, Duration};
 use async_ssh2_tokio::client::{Client, AuthMethod, ServerCheckMethod};
 
 use crate::model::Server;
@@ -8,33 +9,35 @@ pub struct SSHClient {
 }
 
 impl SSHClient {
-    // pub async fn new(server: &Server) -> Result<Self, Box<dyn std::error::Error>> {
-    //     let client = Client::connect(
-    //         (server.address.clone(), 22),
-    //         "khanhn2",
-    //         AuthMethod::with_key_file("/home/nekoconn/.ssh/id_ed25519", Option::None),
-    //         ServerCheckMethod::NoCheck,
-    //     )
-    //     .await?;
-    //
-    //     let result = client.execute("tail /srv/scratch/khanhn2/orr-sommerfeld/fsos/logfile").await?;
-    //     print!("{0}", result.stdout);
-    //
-    //     Ok(Self { client })
-    // }
-    pub async fn new() -> Result<Self, async_ssh2_tokio::error::Error> {
-        let client = Client::connect(
-            ("enzo.cs.illinois.edu", 22),
-            "khanhn2",
-            AuthMethod::with_key_file("/home/nekoconn/.ssh/id_ed25519", Option::None),
+    pub async fn new(server: &Server) -> Result<Self, async_ssh2_tokio::error::Error> {
+        let connect_future = Client::connect(
+            (server.address.clone(), server.port),
+            &server.username,
+            AuthMethod::with_key_file(server.key_file_path.clone(), Option::None),
             ServerCheckMethod::NoCheck,
-        )
-        .await?;
-
-        let result = client.execute("tail /srv/scratch/khanhn2/orr-sommerfeld/fsos/logfile").await?;
-        print!("{0}", result.stdout);
+        );
+        
+        let client = timeout(Duration::from_secs(5), connect_future)
+            .await
+            .map_err(|_| async_ssh2_tokio::error::Error::from(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "SSH connect timed out",
+            )))??;
 
         Ok(Self { client })
+    }
+
+    
+    pub async fn ping(&self) -> Result<(), async_ssh2_tokio::error::Error> {
+        let execute_future = self.client.execute("echo ping");
+        let result = timeout(Duration::from_secs(5), execute_future)
+            .await
+            .map_err(|_| async_ssh2_tokio::error::Error::from(std::io::Error::new(
+                std::io::ErrorKind::TimedOut,
+                "SSH connect timed out",
+            )))??;
+        assert_eq!(result.exit_status, 0);
+        Ok(())
     }
 
     pub async fn execute(&self, cmd: &str) -> Result<String, async_ssh2_tokio::error::Error> {
@@ -44,6 +47,10 @@ impl SSHClient {
 
     pub async fn download_file(&self, file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
         self.client.download_file(file, file).await?;
+        Ok(())
+    }
+    pub async fn upload_file(&self, file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
+        self.client.upload_file(file, file, Option::None, Option::None, false).await?;
         Ok(())
     }
 }
