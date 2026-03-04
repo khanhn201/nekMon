@@ -22,8 +22,8 @@ CREATE TABLE project (
     created_at              TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     local_directory         TEXT NOT NULL DEFAULT '',
     src_directory           TEXT NOT NULL DEFAULT '',
-    post_files_json         TEXT NOT NULL DEFAULT '',
-    get_files_json          TEXT NOT NULL DEFAULT ''
+    post_files              TEXT NOT NULL DEFAULT '',
+    get_files               TEXT NOT NULL DEFAULT ''
 );
 
 -- ========================
@@ -42,8 +42,8 @@ CREATE TABLE run (
     remote_directory        TEXT    NOT NULL DEFAULT '',
     local_directory         TEXT    NOT NULL DEFAULT '',
 
-    post_files_json         TEXT    NOT NULL DEFAULT '',
-    get_files_json          TEXT    NOT NULL DEFAULT '',
+    post_files              TEXT    NOT NULL DEFAULT '',
+    get_files               TEXT    NOT NULL DEFAULT '',
 
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
     FOREIGN KEY(server_id) REFERENCES server(id) ON DELETE RESTRICT

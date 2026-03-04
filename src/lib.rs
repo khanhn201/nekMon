@@ -14,6 +14,8 @@ pub mod schema;
 pub mod model;
 #[cfg(feature = "ssr")]
 pub mod ssh;
+#[cfg(feature = "ssr")]
+pub mod log_parser;
 
 
 

@@ -34,11 +34,12 @@ pub struct Project {
     //  TODO an initial script to generate mesh, parameters, etc.
 
     pub src_directory: String,
-    pub post_files_json: String,   // JSON of a list of files to copy to server
-    pub get_files_json: String,    // JSON of a list of files to retrieve from server
+    pub post_files: String,   // comma separated of files to copy to server
+    pub get_files: String,    // comma separated of files to retrieve from server
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, FromRow)]
+#[graphql(complex)]
 pub struct Run {
     pub id: i64,
     pub name: String,
@@ -49,8 +50,8 @@ pub struct Run {
     pub remote_directory: String,
     pub local_directory: String,
 
-    pub post_files_json: String,   // JSON of a list of files to copy to server
-    pub get_files_json: String,    // JSON of a list of files to retrieve from server
+    pub post_files: String,   // comma separated list of files to copy to server
+    pub get_files: String,    // comma separated list of files to retrieve from server
     pub config_json: String,
     pub notes: String,
 }

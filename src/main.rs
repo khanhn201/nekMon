@@ -14,7 +14,7 @@ use async_graphql_axum::GraphQL;
 use nekMon::schema::*;
 use nekMon::app::*;
 use nekMon::app_state::init_app_state;
-
+use nekMon::log_parser::*;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]

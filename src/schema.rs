@@ -8,8 +8,6 @@ use crate::model::*;
 use crate::app_state::AppState;
 use crate::ssh::SSHClient;
 
-
-
 pub struct QueryRoot;
 #[Object]
 impl QueryRoot {
@@ -146,12 +144,12 @@ impl MutationRoot {
         );
 
         let run = sqlx::query_as(
-            r#"INSERT INTO run (name, project_id, server_id, remote_directory, local_directory, post_files_json, get_files_json)
+            r#"INSERT INTO run (name, project_id, server_id, remote_directory, local_directory, post_files, get_files)
              VALUES (?, ?, ?, ?, ?, ?, ?)
              RETURNING *"#
         )
         .bind(name).bind(project_id).bind(server_id).bind(remote_directory).bind(local_directory)
-        .bind(project.post_files_json).bind(project.get_files_json)
+        .bind(project.post_files).bind(project.get_files)
         .fetch_one(pool).await?;
 
         Ok(run)
@@ -203,8 +201,8 @@ impl MutationRoot {
         name: Option<String>,
         src_directory: Option<String>,
         local_directory: Option<String>,
-        post_file_json: Option<String>,
-        get_file_json: Option<String>,
+        post_file: Option<String>,
+        get_file: Option<String>,
     ) -> Result<Project> {
         let app_state = ctx.data::<Arc<AppState>>()?;
         let pool = &app_state.pool;
@@ -216,14 +214,14 @@ impl MutationRoot {
                 name = COALESCE(?, name),
                 src_directory = COALESCE(?, src_directory),
                 local_directory = COALESCE(?, local_directory),
-                post_files_json = COALESCE(?, post_files_json),
-                get_files_json = COALESCE(?, get_files_json)
+                post_files = COALESCE(?, post_files),
+                get_files = COALESCE(?, get_files)
             WHERE id = ?
             RETURNING *
             "#
         )
         .bind(name).bind(src_directory).bind(local_directory)
-        .bind(post_file_json).bind(get_file_json).bind(id)
+        .bind(post_file).bind(get_file).bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -238,9 +236,9 @@ impl MutationRoot {
         name: Option<String>,
         remote_directory:  Option<String>,
         local_directory:  Option<String>,
-        post_file_json: Option<String>,
-        get_file_json: Option<String>,
-        config: Option<String>,
+        post_file: Option<String>,
+        get_file: Option<String>,
+        config_json: Option<String>,
         notes: Option<String>,
     ) -> Result<Run> {
         let app_state = ctx.data::<Arc<AppState>>()?;
@@ -253,8 +251,8 @@ impl MutationRoot {
                 name = COALESCE(?, name),
                 remote_directory = COALESCE(?, remote_directory),
                 local_directory = COALESCE(?, local_directory),
-                post_files_json = COALESCE(?, post_files_json),
-                get_files_json = COALESCE(?, get_files_json),
+                post_files = COALESCE(?, post_files),
+                get_files = COALESCE(?, get_files),
                 config_json = COALESCE(?, config_json),
                 notes = COALESCE(?, notes)
             WHERE id = ?
@@ -262,7 +260,7 @@ impl MutationRoot {
             "#
         )
         .bind(name).bind(remote_directory).bind(local_directory)
-        .bind(post_file_json).bind(get_file_json).bind(config)
+        .bind(post_file).bind(get_file).bind(config_json)
         .bind(notes).bind(id)
         .fetch_one(pool)
         .await?;
@@ -314,5 +312,44 @@ impl Server {
             }
             Err(_) => Ok(false),
         }
+    }
+}
+
+#[ComplexObject]
+impl Run {
+    async fn download(&self, ctx: &Context<'_>) -> Result<bool> {
+        let app_state = ctx.data::<Arc<AppState>>()?;
+        let servers = &app_state.servers;
+
+        let files: Vec<&str> = self
+            .get_files
+            .split(',')
+            .map(|f| f.trim())
+            .filter(|f| !f.is_empty())
+            .collect();
+        
+        for file in &files {
+            let local_file = format!(
+                "{}/{}",
+                self.local_directory.trim_end_matches('/'),
+                file
+            );
+            let remote_file = format!(
+                "{}/{}",
+                self.remote_directory.trim_end_matches('/'),
+                file
+            );
+
+            if let Some(ssh_client_ref) = servers.get(&self.server_id) {
+                ssh_client_ref
+                    .download_file(&local_file, &remote_file)
+                    .await?;
+                return Ok(true);
+            } else {
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
     }
 }

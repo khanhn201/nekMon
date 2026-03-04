@@ -45,12 +45,12 @@ impl SSHClient {
         Ok(result.stdout)
     }
 
-    pub async fn download_file(&self, file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
-        self.client.download_file(file, file).await?;
+    pub async fn download_file(&self, local_file: &str, remote_file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
+        self.client.download_file(remote_file, local_file).await?;
         Ok(())
     }
-    pub async fn upload_file(&self, file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
-        self.client.upload_file(file, file, Option::None, Option::None, false).await?;
+    pub async fn upload_file(&self, local_file: &str, remote_file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
+        self.client.upload_file(local_file, remote_file, Option::None, Option::None, false).await?;
         Ok(())
     }
 }
