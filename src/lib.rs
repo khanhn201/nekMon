@@ -3,6 +3,8 @@
 
 
 pub mod app;
+pub mod model;
+pub mod components;
 
 #[cfg(feature = "ssr")]
 pub mod configuration;
@@ -10,8 +12,6 @@ pub mod configuration;
 pub mod app_state;
 #[cfg(feature = "ssr")]
 pub mod schema;
-#[cfg(feature = "ssr")]
-pub mod model;
 #[cfg(feature = "ssr")]
 pub mod ssh;
 #[cfg(feature = "ssr")]

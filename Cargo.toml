@@ -26,6 +26,11 @@ rand = { version = "0.9", optional = true }
 async-ssh2-tokio = { version = "0.12.2", optional = true }
 dashmap = { version = "6.1.0", optional = true }
 toml = "1.0.3"
+futures = "0.3.32"
+lucide-leptos = { version = "2.577.0", features = ["all-icons"] }
+leptos-use = "0.18.3"
+# russh = { version = "0.57.1", optional = true }
+# russh-sftp = { version = "2.1.1", optional = true }
 
 [features]
 hydrate = [
@@ -41,9 +46,12 @@ ssr = [
     "rand",
     "dashmap",
     "async-ssh2-tokio",
+    # "russh",
+    # "russh-sftp",
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
+    "leptos-use/ssr"
 ]
 rand = ["dep:rand"]
 dashmap = ["dep:dashmap"]
@@ -68,7 +76,8 @@ site-root = "target/site"
 site-pkg-dir = "pkg"
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
-style-file = "style/main.scss"
+# style-file = "style/main.scss"
+tailwind-input-file = "style/tailwind.css"
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
 #

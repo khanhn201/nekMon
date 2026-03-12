@@ -15,7 +15,7 @@ impl SSHClient {
             &server.username,
             AuthMethod::with_key_file(server.key_file_path.clone(), Option::None),
             ServerCheckMethod::NoCheck,
-        );
+        ); // TODO: connect interative (refer to visit or paraview), use russh and russh-sftp
         
         let client = timeout(Duration::from_secs(5), connect_future)
             .await

@@ -2,28 +2,70 @@ use std::sync::Arc;
 
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 
-use crate::ssh::SSHClient;
-
 use dashmap::DashMap;
 
+use crate::ssh::SSHClient;
+use crate::model::Server;
 
+
+#[derive(Clone)]
 pub struct AppState {
-    pub pool: SqlitePool,
-    pub servers: DashMap<i64, Arc<SSHClient>>,
+    inner: Arc<AppStateInner>,
 }
 
-pub async fn init_app_state() -> Result<Arc<AppState>, sqlx::Error> {
-    let pool = SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect("sqlite:nekMon.db?mode=rwc") // TODO: configurable
-        .await?;
-    
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await?;
+struct AppStateInner {
+    pool: SqlitePool,
+    servers: DashMap<i64, Arc<SSHClient>>,
+}
 
-    Ok(Arc::new(AppState {
-        pool: pool,
-        servers: DashMap::new(),
-    }))
+impl AppState {
+    pub async fn new() -> Result<Self, sqlx::Error> {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect("sqlite:nekMon.db?mode=rwc") // TODO: make configurable
+            .await?;
+
+        sqlx::migrate!("./migrations")
+            .run(&pool)
+            .await?;
+
+        Ok(Self {
+            inner: Arc::new(AppStateInner {
+                pool,
+                servers: DashMap::new(),
+            }),
+        })
+    }
+
+    pub fn pool(&self) -> &SqlitePool {
+        &self.inner.pool
+    }
+    pub fn servers(&self) -> &DashMap<i64, Arc<SSHClient>> {
+        &self.inner.servers
+    }
+    
+    pub async fn get_ssh_client(&self, server: &Server) -> Option<Arc<SSHClient>> {
+        let servers = self.servers();
+
+        if let Some(ssh_client_ref) = servers.get(&server.id) {
+            if ssh_client_ref.ping().await.is_ok() {
+                return Some(ssh_client_ref.clone());
+            } else {
+                servers.remove(&server.id);
+            }
+        }
+
+        match SSHClient::new(server).await {
+            Ok(client) => {
+                let client = Arc::new(client);
+                if client.ping().await.is_ok() {
+                    servers.insert(server.id, client.clone());
+                    return Some(client);
+                } else {
+                    return None;
+                }
+            }
+            Err(_) => None,
+        }
+    }
 }

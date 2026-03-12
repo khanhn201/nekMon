@@ -3,13 +3,11 @@ use serde::{Serialize, Deserialize};
 
 use async_graphql::*;
 
-use sqlx::FromRow;
+// Models: Should be one-to-one with SQL tables
 
-
-// Models: SQL table schema
-
-#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
-#[graphql(complex)]
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Server {
     pub id: i64,
     pub name: String,
@@ -23,8 +21,9 @@ pub struct Server {
     // pub run_script: String // TODO
 }
 
-#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
-#[graphql(complex)]
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Project {
     pub id: i64,
     pub name: String,
@@ -38,8 +37,9 @@ pub struct Project {
     pub get_files: String,    // comma separated of files to retrieve from server
 }
 
-#[derive(SimpleObject, Serialize, Deserialize, FromRow)]
-#[graphql(complex)]
+#[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
+#[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Run {
     pub id: i64,
     pub name: String,

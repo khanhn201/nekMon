@@ -4,10 +4,12 @@
 - Leptos
 - Axum
 - sqlx
-- async-ssh2-tokio
+- async-ssh2-tokio (to be moved to russh)
 - SQLite
 - async-graphql
 - Vega-Lite
+- Tailwindcss
+- Lucide
 
 # Leptos + Axum
 ## Prerequisites
@@ -26,6 +28,7 @@ rustup target add wasm32-unknown-unknown
 ## Todo
 - [ ] SSH multiplexing
 - [ ] SSH interactive
+- [ ] Docker
 
 
 

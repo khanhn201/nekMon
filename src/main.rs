@@ -13,8 +13,7 @@ use async_graphql_axum::GraphQL;
 
 use nekMon::schema::*;
 use nekMon::app::*;
-use nekMon::app_state::init_app_state;
-use nekMon::log_parser::*;
+use nekMon::app_state::AppState;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
@@ -25,21 +24,26 @@ async fn main() {
     let addr = leptos_options.site_addr;
 
     let routes = generate_route_list(App);
-    let app_state = init_app_state().await.unwrap();
+    let app_state = AppState::new().await.unwrap();
 
     async fn graphiql() -> impl IntoResponse {
         response::Html(GraphiQLSource::build().endpoint("/graphql").finish())
     }
     let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-        .data(app_state)
+        .data(app_state.clone())
         .finish();
     let graphql_handler = GraphQL::new(schema);
     
     let app = Router::new()
-        .leptos_routes(&leptos_options, routes, {
-            let leptos_options = leptos_options.clone();
-            move || shell(leptos_options.clone())
-        })
+        .leptos_routes_with_context(
+            &leptos_options,
+            routes,
+            move || provide_context(app_state.clone()),
+            {
+                let leptos_options = leptos_options.clone();
+                move || shell(leptos_options.clone())
+            }
+        )
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options)
         .route("/graphql", get(graphiql).post_service(graphql_handler));

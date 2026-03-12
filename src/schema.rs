@@ -16,8 +16,8 @@ impl QueryRoot {
         ctx: &Context<'_>,
         name: String,
     ) -> Result<Project> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let project: Project = sqlx::query_as(
             "SELECT * FROM project WHERE name = ?"
         )
@@ -30,8 +30,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Project>> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let projects: Vec<Project> = sqlx::query_as(
             "SELECT * FROM project"
         )
@@ -43,8 +43,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Run>> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let runs: Vec<Run> = sqlx::query_as(
             "SELECT * FROM run"
         )
@@ -56,8 +56,8 @@ impl QueryRoot {
         &self,
         ctx: &Context<'_>,
     ) -> Result<Vec<Server>> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let servers: Vec<Server> = sqlx::query_as(
             "SELECT * FROM server"
         )
@@ -79,8 +79,8 @@ impl MutationRoot {
         address: String,
         username: String,
     ) -> Result<Server> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let server = sqlx::query_as(
             r#"INSERT INTO server (name, address, username)
              VALUES (?, ?, ?)
@@ -96,14 +96,14 @@ impl MutationRoot {
         #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
         name: String,
     ) -> Result<Project> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let project = sqlx::query_as(
-            r#"INSERT INTO project (name)
-             VALUES (?)
+            r#"INSERT INTO project (name, get_files)
+             VALUES (?, ?)
              RETURNING *"#
         )
-        .bind(&name)
+        .bind(&name).bind("logfile")
         .fetch_one(pool).await?;
 
         Ok(project)
@@ -114,8 +114,8 @@ impl MutationRoot {
         project_id: i64,
         server_id: i64,
     ) -> Result<Run> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         let name = Alphabetic.sample_string(&mut rand::rng(), 1) + &Alphanumeric.sample_string(&mut rand::rng(), 7);
         
         let project: Project = sqlx::query_as(
@@ -167,8 +167,8 @@ impl MutationRoot {
         key_file_path: Option<String>,
         port: Option<u16>,
     ) -> Result<Server> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
         // TODO: error if directory not valid
 
         let server = sqlx::query_as::<_, Server>(
@@ -204,8 +204,8 @@ impl MutationRoot {
         post_file: Option<String>,
         get_file: Option<String>,
     ) -> Result<Project> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
 
         let project = sqlx::query_as::<_, Project>(
             r#"
@@ -241,8 +241,8 @@ impl MutationRoot {
         config_json: Option<String>,
         notes: Option<String>,
     ) -> Result<Run> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
 
         let run = sqlx::query_as::<_, Run>(
             r#"
@@ -268,6 +268,10 @@ impl MutationRoot {
         Ok(run)
     }
 
+// TODO async fn connect_server
+// TODO async fn ping_server
+// TODO async fn download_files
+
 }
 
 // Additional resolvers
@@ -275,8 +279,8 @@ impl MutationRoot {
 #[ComplexObject]
 impl Project {
     async fn runs(&self, ctx: &Context<'_>) -> Result<Vec<Run>> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let pool = &app_state.pool;
+        let app_state = ctx.data::<AppState>()?;
+        let pool = app_state.pool();
 
         let runs = sqlx::query_as::<_, Run>(
             "SELECT * FROM run WHERE project_id = ?"
@@ -292,9 +296,9 @@ impl Project {
 #[ComplexObject]
 impl Server {
     async fn alive(&self, ctx: &Context<'_>) -> Result<bool> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let servers = &app_state.servers;
-        
+        let app_state = ctx.data::<AppState>()?;
+        let servers = app_state.servers();
+
         if let Some(ssh_client_ref) = servers.get(&self.id) {
             return match ssh_client_ref.ping().await.is_ok() {
                 true => Ok(true),
@@ -318,8 +322,8 @@ impl Server {
 #[ComplexObject]
 impl Run {
     async fn download(&self, ctx: &Context<'_>) -> Result<bool> {
-        let app_state = ctx.data::<Arc<AppState>>()?;
-        let servers = &app_state.servers;
+        let app_state = ctx.data::<AppState>()?;
+        let servers = app_state.servers();
 
         let files: Vec<&str> = self
             .get_files
@@ -327,7 +331,7 @@ impl Run {
             .map(|f| f.trim())
             .filter(|f| !f.is_empty())
             .collect();
-        
+
         for file in &files {
             let local_file = format!(
                 "{}/{}",
@@ -352,4 +356,5 @@ impl Run {
 
         Ok(true)
     }
+    // TODO async fn process_logfile
 }
