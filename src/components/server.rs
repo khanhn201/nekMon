@@ -1,8 +1,5 @@
 use leptos::prelude::*;
 
-use leptos_use::{use_interval, UseIntervalReturn};
-
-
 use lucide_leptos::{Dot, Ellipsis, Plus};
 
 use crate::model::Server;
@@ -128,6 +125,7 @@ pub fn ServerList() -> impl IntoView {
             >
                 { move || { 
                     match servers_resource.get() {
+                    
                         Some(Ok(servers)) => 
                             servers.into_iter().map(|server| {
                                 let server_clone = server.clone();
@@ -169,30 +167,23 @@ pub fn ServerList() -> impl IntoView {
 
 #[component]
 fn ServerStatus(server: Server) -> impl IntoView {
-    let UseIntervalReturn {
-        counter: refresh,
-        pause,
-        resume,
-        ..
-    }  = use_interval( 10000 ); // TODO: customize polling rate
-    
     // Only render on client - starts as None on SSR
-    let (mounted, set_mounted) = signal(false);
-    Effect::new(move |_| set_mounted.set(true));
+    let refresh = RwSignal::new(0u32);
+    let mounted = RwSignal::new(false);
+    Effect::new(move |_| mounted.set(true));
 
-    let alive = LocalResource::new(
-        move || {
-            refresh.get();
-            pause();
-            let server = server.clone();
-            let resume = resume.clone();
-            async move {
-                let result = get_alive_status(server).await.unwrap_or(false);
-                resume();
-                result
-            }
+    let alive = LocalResource::new(move || {
+        let _ = refresh.get();
+        let server = server.clone();
+        async move {
+            let result = get_alive_status(server).await.unwrap_or(false);
+            set_timeout(
+                move || refresh.update(|n| *n += 1),
+                std::time::Duration::from_millis(10_000),
+            );
+            result
         }
-    );
+    });
 
     {move || mounted.get().then(|| view! {
         <Transition fallback=move || view! {
@@ -256,7 +247,7 @@ fn ServerModifyButton(server: Server, servers_resource: Resource<Result<Vec<Serv
 fn ServerAddModal(add_modal_opened: RwSignal<bool>, servers_resource: Resource<Result<Vec<Server>, ServerFnError>>) -> impl IntoView {
     let submit_action = ServerAction::<CreateServer>::new();
     Effect::new(move |_| {
-        if let Some(_) = submit_action.input().get() {
+        if let Some(_) = submit_action.value().get() {
             add_modal_opened.set(false);
             servers_resource.refetch();
         }
@@ -299,7 +290,7 @@ fn ServerEditModal(server: Server, edit_modal_opened: RwSignal<bool>, servers_re
     let server = StoredValue::new(server);
     let submit_action = ServerAction::<UpdateServer>::new();
     Effect::new(move |_| {
-        if let Some(_) = submit_action.input().get() {
+        if let Some(_) = submit_action.value().get() {
             edit_modal_opened.set(false);
             servers_resource.refetch();
         }

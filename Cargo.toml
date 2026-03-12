@@ -28,7 +28,6 @@ dashmap = { version = "6.1.0", optional = true }
 toml = "1.0.3"
 futures = "0.3.32"
 lucide-leptos = { version = "2.577.0", features = ["all-icons"] }
-leptos-use = "0.18.3"
 # russh = { version = "0.57.1", optional = true }
 # russh-sftp = { version = "2.1.1", optional = true }
 
@@ -50,8 +49,7 @@ ssr = [
     # "russh-sftp",
     "leptos/ssr",
     "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "leptos-use/ssr"
+    "leptos_router/ssr"
 ]
 rand = ["dep:rand"]
 dashmap = ["dep:dashmap"]
