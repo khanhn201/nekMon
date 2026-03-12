@@ -1,5 +1,5 @@
+use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use serde::{Serialize, Deserialize};
 
 use async_graphql::*;
 
@@ -16,9 +16,8 @@ pub struct Server {
     pub username: String,
     pub key_file_path: String,
     //  !TODO a run script, can be different for Nek5000 and NekRS?
-    
     pub remote_directory: String, // Default prefix for each new run
-    // pub run_script: String // TODO
+                                  // pub run_script: String // TODO
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -28,13 +27,12 @@ pub struct Project {
     pub id: i64,
     pub name: String,
     pub created_at: OffsetDateTime,
-    
-    pub local_directory: String,  // Default prefix for each new run
-    //  TODO an initial script to generate mesh, parameters, etc.
 
+    pub local_directory: String, // Default prefix for each new run
+    //  TODO an initial script to generate mesh, parameters, etc.
     pub src_directory: String,
-    pub post_files: String,   // comma separated of files to copy to server
-    pub get_files: String,    // comma separated of files to retrieve from server
+    pub post_files: String, // comma separated of files to copy to server
+    pub get_files: String,  // comma separated of files to retrieve from server
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
@@ -50,8 +48,8 @@ pub struct Run {
     pub remote_directory: String,
     pub local_directory: String,
 
-    pub post_files: String,   // comma separated list of files to copy to server
-    pub get_files: String,    // comma separated list of files to retrieve from server
+    pub post_files: String, // comma separated list of files to copy to server
+    pub get_files: String,  // comma separated list of files to retrieve from server
     pub config_json: String,
     pub notes: String,
 }

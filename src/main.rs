@@ -1,24 +1,23 @@
 use axum::{
-    Router,
     response::{self, IntoResponse},
     routing::get,
+    Router,
 };
 
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
-use async_graphql::{EmptySubscription, Schema, http::GraphiQLSource};
+use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
 use async_graphql_axum::GraphQL;
 
-use nekMon::schema::*;
 use nekMon::app::*;
 use nekMon::app_state::AppState;
+use nekMon::schema::*;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
@@ -33,7 +32,7 @@ async fn main() {
         .data(app_state.clone())
         .finish();
     let graphql_handler = GraphQL::new(schema);
-    
+
     let app = Router::new()
         .leptos_routes_with_context(
             &leptos_options,
@@ -42,7 +41,7 @@ async fn main() {
             {
                 let leptos_options = leptos_options.clone();
                 move || shell(leptos_options.clone())
-            }
+            },
         )
         .fallback(leptos_axum::file_and_error_handler(shell))
         .with_state(leptos_options)

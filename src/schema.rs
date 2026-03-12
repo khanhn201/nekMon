@@ -1,72 +1,48 @@
 use std::sync::Arc;
 
-use rand::distr::{SampleString,Alphanumeric,Alphabetic};
+use rand::distr::{Alphabetic, Alphanumeric, SampleString};
 
 use async_graphql::*;
 
-use crate::model::*;
 use crate::app_state::AppState;
+use crate::model::*;
 use crate::ssh::SSHClient;
 
 pub struct QueryRoot;
 #[Object]
 impl QueryRoot {
-    async fn get_project(
-        &self,
-        ctx: &Context<'_>,
-        name: String,
-    ) -> Result<Project> {
+    async fn get_project(&self, ctx: &Context<'_>, name: String) -> Result<Project> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
-        let project: Project = sqlx::query_as(
-            "SELECT * FROM project WHERE name = ?"
-        )
-        .bind(name)
-        .fetch_one(pool)
-        .await?;
+        let project: Project = sqlx::query_as("SELECT * FROM project WHERE name = ?")
+            .bind(name)
+            .fetch_one(pool)
+            .await?;
         Ok(project)
     }
-    async fn get_projects(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<Project>> {
+    async fn get_projects(&self, ctx: &Context<'_>) -> Result<Vec<Project>> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
-        let projects: Vec<Project> = sqlx::query_as(
-            "SELECT * FROM project"
-        )
-        .fetch_all(pool)
-        .await?;
+        let projects: Vec<Project> = sqlx::query_as("SELECT * FROM project")
+            .fetch_all(pool)
+            .await?;
         Ok(projects)
     }
-    async fn get_runs(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<Run>> {
+    async fn get_runs(&self, ctx: &Context<'_>) -> Result<Vec<Run>> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
-        let runs: Vec<Run> = sqlx::query_as(
-            "SELECT * FROM run"
-        )
-        .fetch_all(pool)
-        .await?;
+        let runs: Vec<Run> = sqlx::query_as("SELECT * FROM run").fetch_all(pool).await?;
         Ok(runs)
     }
-    async fn get_servers(
-        &self,
-        ctx: &Context<'_>,
-    ) -> Result<Vec<Server>> {
+    async fn get_servers(&self, ctx: &Context<'_>) -> Result<Vec<Server>> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
-        let servers: Vec<Server> = sqlx::query_as(
-            "SELECT * FROM server"
-        )
-        .fetch_all(pool)
-        .await?;
+        let servers: Vec<Server> = sqlx::query_as("SELECT * FROM server")
+            .fetch_all(pool)
+            .await?;
         Ok(servers)
     }
 }
-
 
 pub struct MutationRoot;
 #[Object]
@@ -74,8 +50,7 @@ impl MutationRoot {
     async fn create_server(
         &self,
         ctx: &Context<'_>,
-        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
-        name: String,
+        #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: String,
         address: String,
         username: String,
     ) -> Result<Server> {
@@ -84,52 +59,48 @@ impl MutationRoot {
         let server = sqlx::query_as(
             r#"INSERT INTO server (name, address, username)
              VALUES (?, ?, ?)
-             RETURNING *"#
+             RETURNING *"#,
         )
-        .bind(&name).bind(&address).bind(&username)
-        .fetch_one(pool).await?;
+        .bind(&name)
+        .bind(&address)
+        .bind(&username)
+        .fetch_one(pool)
+        .await?;
         Ok(server)
     }
     async fn create_project(
         &self,
         ctx: &Context<'_>,
-        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
-        name: String,
+        #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: String,
     ) -> Result<Project> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
         let project = sqlx::query_as(
             r#"INSERT INTO project (name, get_files)
              VALUES (?, ?)
-             RETURNING *"#
+             RETURNING *"#,
         )
-        .bind(&name).bind("logfile")
-        .fetch_one(pool).await?;
+        .bind(&name)
+        .bind("logfile")
+        .fetch_one(pool)
+        .await?;
 
         Ok(project)
     }
-    async fn create_run(
-        &self,
-        ctx: &Context<'_>,
-        project_id: i64,
-        server_id: i64,
-    ) -> Result<Run> {
+    async fn create_run(&self, ctx: &Context<'_>, project_id: i64, server_id: i64) -> Result<Run> {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
-        let name = Alphabetic.sample_string(&mut rand::rng(), 1) + &Alphanumeric.sample_string(&mut rand::rng(), 7);
-        
-        let project: Project = sqlx::query_as(
-            "SELECT * FROM project WHERE id = ?"
-        )
-        .bind(project_id)
-        .fetch_one(pool)
-        .await?;
-        let server: Server = sqlx::query_as(
-            "SELECT * FROM server WHERE id = ?"
-        )
-        .bind(server_id)
-        .fetch_one(pool)
-        .await?;
+        let name = Alphabetic.sample_string(&mut rand::rng(), 1)
+            + &Alphanumeric.sample_string(&mut rand::rng(), 7);
+
+        let project: Project = sqlx::query_as("SELECT * FROM project WHERE id = ?")
+            .bind(project_id)
+            .fetch_one(pool)
+            .await?;
+        let server: Server = sqlx::query_as("SELECT * FROM server WHERE id = ?")
+            .bind(server_id)
+            .fetch_one(pool)
+            .await?;
         // TODO: error if directory not set
         let remote_directory = format!(
             "{}/{}/{}/",
@@ -159,11 +130,10 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         id: i64,
-        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
-        name: Option<String>,
-        address:  Option<String>,
-        username:  Option<String>,
-        remote_directory:  Option<String>,
+        #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: Option<String>,
+        address: Option<String>,
+        username: Option<String>,
+        remote_directory: Option<String>,
         key_file_path: Option<String>,
         port: Option<u16>,
     ) -> Result<Server> {
@@ -183,10 +153,15 @@ impl MutationRoot {
                 port = COALESCE(?, port)
             WHERE id = ?
             RETURNING *
-            "#
+            "#,
         )
-        .bind(name).bind(address).bind(username).bind(remote_directory)
-        .bind(key_file_path).bind(port).bind(id)
+        .bind(name)
+        .bind(address)
+        .bind(username)
+        .bind(remote_directory)
+        .bind(key_file_path)
+        .bind(port)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -197,8 +172,7 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         id: i64,
-        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
-        name: Option<String>,
+        #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: Option<String>,
         src_directory: Option<String>,
         local_directory: Option<String>,
         post_file: Option<String>,
@@ -218,10 +192,14 @@ impl MutationRoot {
                 get_files = COALESCE(?, get_files)
             WHERE id = ?
             RETURNING *
-            "#
+            "#,
         )
-        .bind(name).bind(src_directory).bind(local_directory)
-        .bind(post_file).bind(get_file).bind(id)
+        .bind(name)
+        .bind(src_directory)
+        .bind(local_directory)
+        .bind(post_file)
+        .bind(get_file)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 
@@ -232,10 +210,9 @@ impl MutationRoot {
         &self,
         ctx: &Context<'_>,
         id: i64,
-        #[graphql(validator(regex="^[a-zA-Z][a-zA-Z0-9_-]*$"))]
-        name: Option<String>,
-        remote_directory:  Option<String>,
-        local_directory:  Option<String>,
+        #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: Option<String>,
+        remote_directory: Option<String>,
+        local_directory: Option<String>,
         post_file: Option<String>,
         get_file: Option<String>,
         config_json: Option<String>,
@@ -257,21 +234,25 @@ impl MutationRoot {
                 notes = COALESCE(?, notes)
             WHERE id = ?
             RETURNING *
-            "#
+            "#,
         )
-        .bind(name).bind(remote_directory).bind(local_directory)
-        .bind(post_file).bind(get_file).bind(config_json)
-        .bind(notes).bind(id)
+        .bind(name)
+        .bind(remote_directory)
+        .bind(local_directory)
+        .bind(post_file)
+        .bind(get_file)
+        .bind(config_json)
+        .bind(notes)
+        .bind(id)
         .fetch_one(pool)
         .await?;
 
         Ok(run)
     }
 
-// TODO async fn connect_server
-// TODO async fn ping_server
-// TODO async fn download_files
-
+    // TODO async fn connect_server
+    // TODO async fn ping_server
+    // TODO async fn download_files
 }
 
 // Additional resolvers
@@ -282,12 +263,10 @@ impl Project {
         let app_state = ctx.data::<AppState>()?;
         let pool = app_state.pool();
 
-        let runs = sqlx::query_as::<_, Run>(
-            "SELECT * FROM run WHERE project_id = ?"
-        )
-        .bind(self.id)
-        .fetch_all(pool)
-        .await?;
+        let runs = sqlx::query_as::<_, Run>("SELECT * FROM run WHERE project_id = ?")
+            .bind(self.id)
+            .fetch_all(pool)
+            .await?;
 
         Ok(runs.into_iter().map(Run::from).collect())
     }
@@ -306,7 +285,7 @@ impl Server {
                     servers.remove(&self.id);
                     return Ok(false);
                 }
-            }
+            };
         }
 
         match SSHClient::new(self).await {
@@ -333,16 +312,8 @@ impl Run {
             .collect();
 
         for file in &files {
-            let local_file = format!(
-                "{}/{}",
-                self.local_directory.trim_end_matches('/'),
-                file
-            );
-            let remote_file = format!(
-                "{}/{}",
-                self.remote_directory.trim_end_matches('/'),
-                file
-            );
+            let local_file = format!("{}/{}", self.local_directory.trim_end_matches('/'), file);
+            let remote_file = format!("{}/{}", self.remote_directory.trim_end_matches('/'), file);
 
             if let Some(ssh_client_ref) = servers.get(&self.server_id) {
                 ssh_client_ref

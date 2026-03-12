@@ -1,2 +1,2 @@
-pub mod server;
 pub mod modal;
+pub mod server;

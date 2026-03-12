@@ -4,9 +4,8 @@ use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 
 use dashmap::DashMap;
 
-use crate::ssh::SSHClient;
 use crate::model::Server;
-
+use crate::ssh::SSHClient;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -25,9 +24,7 @@ impl AppState {
             .connect("sqlite:nekMon.db?mode=rwc") // TODO: make configurable
             .await?;
 
-        sqlx::migrate!("./migrations")
-            .run(&pool)
-            .await?;
+        sqlx::migrate!("./migrations").run(&pool).await?;
 
         Ok(Self {
             inner: Arc::new(AppStateInner {
@@ -43,7 +40,7 @@ impl AppState {
     pub fn servers(&self) -> &DashMap<i64, Arc<SSHClient>> {
         &self.inner.servers
     }
-    
+
     pub async fn get_ssh_client(&self, server: &Server) -> Option<Arc<SSHClient>> {
         let servers = self.servers();
 

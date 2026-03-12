@@ -1,7 +1,7 @@
-use toml;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
+use toml;
 
 use serde::Deserialize;
 
@@ -47,7 +47,6 @@ fn parse(log_path: &str, config_path: &str) -> Vec<Record> {
                 .unwrap_or(true);
 
             if matches {
-
                 if block.start_new_record {
                     if let Some(r) = current.take() {
                         results.push(r);
@@ -56,8 +55,7 @@ fn parse(log_path: &str, config_path: &str) -> Vec<Record> {
                 }
 
                 if let Some(ref mut record) = current {
-                    let parts: Vec<&str> =
-                        line.split_whitespace().collect();
+                    let parts: Vec<&str> = line.split_whitespace().collect();
 
                     for col in &block.columns {
                         if let Some(val) = parts.get(col.index) {

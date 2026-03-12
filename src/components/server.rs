@@ -2,10 +2,8 @@ use leptos::prelude::*;
 
 use lucide_leptos::{Dot, Ellipsis, Plus};
 
+use crate::components::modal::{Menu, Modal};
 use crate::model::Server;
-use crate::components::modal::{Modal, Menu};
-
-
 
 /// ------------------------------
 /// Server functions
@@ -14,50 +12,44 @@ use crate::components::modal::{Modal, Menu};
 #[server]
 pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
     use crate::app_state::AppState;
-
     let app_state = use_context::<AppState>().expect("could not find AppState in context");
-
     let pool = app_state.pool();
-    let servers: Vec<Server> = sqlx::query_as(
-        "SELECT * FROM server"
-    )
-    .fetch_all(pool)
-    .await?;
+    let servers: Vec<Server> = sqlx::query_as("SELECT * FROM server")
+        .fetch_all(pool)
+        .await?;
     Ok(servers)
 }
 
 #[server]
 pub async fn get_alive_status(server: Server) -> Result<bool, ServerFnError> {
     use crate::app_state::AppState;
-    
     let app_state = use_context::<AppState>().expect("AppState missing");
     Ok(app_state.get_ssh_client(&server).await.is_some())
 }
 
 #[server]
-pub async fn create_server(
-    server: Server
-) -> Result<(), ServerFnError> {
+pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state = use_context::<AppState>().expect("could not find AppState in context");
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"INSERT INTO server (name, address, username, remote_directory, key_file_path, port)
          VALUES (?, ?, ?, ?, ?, ?)
-         RETURNING *"#
+         RETURNING *"#,
     )
-    .bind(server.name).bind(server.address).bind(server.username).bind(server.remote_directory)
-    .bind(server.key_file_path).bind(server.port)
+    .bind(server.name)
+    .bind(server.address)
+    .bind(server.username)
+    .bind(server.remote_directory)
+    .bind(server.key_file_path)
+    .bind(server.port)
     .fetch_one(pool)
     .await?;
-
     Ok(())
 }
 
 #[server]
-pub async fn update_server(
-    server: Server
-) -> Result<(), ServerFnError> {
+pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state = use_context::<AppState>().expect("could not find AppState in context");
     let pool = app_state.pool();
@@ -73,16 +65,19 @@ pub async fn update_server(
             port = COALESCE(?, port)
         WHERE id = ?
         RETURNING *
-        "#
+        "#,
     )
-    .bind(server.name).bind(server.address).bind(server.username).bind(server.remote_directory)
-    .bind(server.key_file_path).bind(server.port).bind(server.id)
+    .bind(server.name)
+    .bind(server.address)
+    .bind(server.username)
+    .bind(server.remote_directory)
+    .bind(server.key_file_path)
+    .bind(server.port)
+    .bind(server.id)
     .fetch_one(pool)
     .await?;
-
     Ok(())
 }
-
 
 #[server]
 pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
@@ -96,21 +91,13 @@ pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
     Ok(())
 }
 
-
-
-
 /// ------------------------------
 /// Components
 /// ------------------------------
 
-
-
 #[component]
 pub fn ServerList() -> impl IntoView {
-    let servers_resource = Resource::new(
-        || {},
-        |_| async { get_servers().await }
-    );
+    let servers_resource = Resource::new(|| {}, |_| async { get_servers().await });
 
     let add_modal_opened = RwSignal::new(false);
 
@@ -123,10 +110,10 @@ pub fn ServerList() -> impl IntoView {
             <Transition
                 fallback=move || view! { <span class="px-3 py-1 text-center">"Loading"</span> }
             >
-                { move || { 
+                { move || {
                     match servers_resource.get() {
-                    
-                        Some(Ok(servers)) => 
+
+                        Some(Ok(servers)) =>
                             servers.into_iter().map(|server| {
                                 let server_clone = server.clone();
                                 view! {
@@ -135,7 +122,7 @@ pub fn ServerList() -> impl IntoView {
                                             <ServerStatus server=server/>
                                             <span class="py-1 text-left">{server_clone.name.clone()}</span>
                                         </div>
-                                        <ServerModifyButton 
+                                        <ServerModifyButton
                                             server=server_clone
                                             servers_resource=servers_resource
                                         />
@@ -146,7 +133,7 @@ pub fn ServerList() -> impl IntoView {
                     }
                 }}
             </Transition>
-        
+
             <button
                 class="px-3 py-1 rounded bg-slate-200 text-black hover:bg-slate-300"
                 on:click=move |_| {
@@ -185,25 +172,33 @@ fn ServerStatus(server: Server) -> impl IntoView {
         }
     });
 
-    {move || mounted.get().then(|| view! {
-        <Transition fallback=move || view! {
-            <Dot stroke_width=8 color="var(--color-yellow-500)"/>
-        }>
-            <Dot
-                stroke_width=8
-                color=move || if alive.get().unwrap_or(false) {
-                    "var(--color-green-500)"
-                } else {
-                    "var(--color-red-500)"
+    {
+        move || {
+            mounted.get().then(|| {
+                view! {
+                    <Transition fallback=move || view! {
+                        <Dot stroke_width=8 color="var(--color-yellow-500)"/>
+                    }>
+                        <Dot
+                            stroke_width=8
+                            color=move || if alive.get().unwrap_or(false) {
+                                "var(--color-green-500)"
+                            } else {
+                                "var(--color-red-500)"
+                            }
+                        />
+                    </Transition>
                 }
-            />
-        </Transition>
-    })}
+            })
+        }
+    }
 }
 
-
 #[component]
-fn ServerModifyButton(server: Server, servers_resource: Resource<Result<Vec<Server>, ServerFnError>>) -> impl IntoView {
+fn ServerModifyButton(
+    server: Server,
+    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
     let delete_modal_opened = RwSignal::new(false);
@@ -242,9 +237,11 @@ fn ServerModifyButton(server: Server, servers_resource: Resource<Result<Vec<Serv
     }
 }
 
-
 #[component]
-fn ServerAddModal(add_modal_opened: RwSignal<bool>, servers_resource: Resource<Result<Vec<Server>, ServerFnError>>) -> impl IntoView {
+fn ServerAddModal(
+    add_modal_opened: RwSignal<bool>,
+    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+) -> impl IntoView {
     let submit_action = ServerAction::<CreateServer>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
@@ -284,9 +281,12 @@ fn ServerAddModal(add_modal_opened: RwSignal<bool>, servers_resource: Resource<R
     }
 }
 
-
 #[component]
-fn ServerEditModal(server: Server, edit_modal_opened: RwSignal<bool>, servers_resource: Resource<Result<Vec<Server>, ServerFnError>>) -> impl IntoView {
+fn ServerEditModal(
+    server: Server,
+    edit_modal_opened: RwSignal<bool>,
+    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+) -> impl IntoView {
     let server = StoredValue::new(server);
     let submit_action = ServerAction::<UpdateServer>::new();
     Effect::new(move |_| {
@@ -338,15 +338,13 @@ fn ServerEditModal(server: Server, edit_modal_opened: RwSignal<bool>, servers_re
 fn ServerDeleteModal(
     server: Server,
     delete_modal_opened: RwSignal<bool>,
-    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>
+    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let server_name = StoredValue::new(server.name);
     let server_id = server.id;
-    let delete_action = Action::new(move |_: &()| {
-        async move {
-            let _ = delete_server(server_id).await;
-            servers_resource.refetch();
-        }
+    let delete_action = Action::new(move |_: &()| async move {
+        let _ = delete_server(server_id).await;
+        servers_resource.refetch();
     });
     Effect::new(move |_| {
         if let Some(()) = delete_action.value().get() {
@@ -383,11 +381,6 @@ fn ServerDeleteModal(
         </Modal>
     }
 }
-
-
-
-
-
 
 #[component]
 fn ServerFormFields(

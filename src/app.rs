@@ -1,11 +1,8 @@
+use crate::components::server::ServerList;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::{
-    components::{Route, Router, Routes},
-};
+use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
-use crate::components::server::ServerList;
-
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -51,7 +48,7 @@ fn Home() -> impl IntoView {
             <div class="text-neutral-700 font-mono flex flex-row min-h-screen">
                 <ServerList/>
                 <div class="flex flex-row-reverse flex-wrap m-auto">
-                    <button on:click=on_click 
+                    <button on:click=on_click
                         class="rounded px-3 py-2 m-1 border-b-4 border-l-2 shadow-lg bg-blue-700 border-blue-800 text-white hover:bg-sky-700">
                         "+"
                     </button>

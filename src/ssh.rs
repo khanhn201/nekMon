@@ -1,8 +1,7 @@
+use async_ssh2_tokio::client::{AuthMethod, Client, ServerCheckMethod};
 use tokio::time::{timeout, Duration};
-use async_ssh2_tokio::client::{Client, AuthMethod, ServerCheckMethod};
 
 use crate::model::Server;
-
 
 pub struct SSHClient {
     client: Client,
@@ -16,26 +15,29 @@ impl SSHClient {
             AuthMethod::with_key_file(server.key_file_path.clone(), Option::None),
             ServerCheckMethod::NoCheck,
         ); // TODO: connect interative (refer to visit or paraview), use russh and russh-sftp
-        
+
         let client = timeout(Duration::from_secs(5), connect_future)
             .await
-            .map_err(|_| async_ssh2_tokio::error::Error::from(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "SSH connect timed out",
-            )))??;
+            .map_err(|_| {
+                async_ssh2_tokio::error::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "SSH connect timed out",
+                ))
+            })??;
 
         Ok(Self { client })
     }
 
-    
     pub async fn ping(&self) -> Result<(), async_ssh2_tokio::error::Error> {
         let execute_future = self.client.execute("echo ping");
         let result = timeout(Duration::from_secs(5), execute_future)
             .await
-            .map_err(|_| async_ssh2_tokio::error::Error::from(std::io::Error::new(
-                std::io::ErrorKind::TimedOut,
-                "SSH connect timed out",
-            )))??;
+            .map_err(|_| {
+                async_ssh2_tokio::error::Error::from(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "SSH connect timed out",
+                ))
+            })??;
         assert_eq!(result.exit_status, 0);
         Ok(())
     }
@@ -45,12 +47,22 @@ impl SSHClient {
         Ok(result.stdout)
     }
 
-    pub async fn download_file(&self, local_file: &str, remote_file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
+    pub async fn download_file(
+        &self,
+        local_file: &str,
+        remote_file: &str,
+    ) -> Result<(), async_ssh2_tokio::error::Error> {
         self.client.download_file(remote_file, local_file).await?;
         Ok(())
     }
-    pub async fn upload_file(&self, local_file: &str, remote_file: &str) -> Result<(), async_ssh2_tokio::error::Error> {
-        self.client.upload_file(local_file, remote_file, Option::None, Option::None, false).await?;
+    pub async fn upload_file(
+        &self,
+        local_file: &str,
+        remote_file: &str,
+    ) -> Result<(), async_ssh2_tokio::error::Error> {
+        self.client
+            .upload_file(local_file, remote_file, Option::None, Option::None, false)
+            .await?;
         Ok(())
     }
 }
