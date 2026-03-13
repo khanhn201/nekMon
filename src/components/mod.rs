@@ -1,3 +1,3 @@
 pub mod modal;
-pub mod server;
 pub mod project;
+pub mod server;

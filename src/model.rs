@@ -3,7 +3,8 @@ use time::OffsetDateTime;
 
 use async_graphql::*;
 
-fn default_time() -> OffsetDateTime { // ALlow missing field on create
+fn default_time() -> OffsetDateTime {
+    // ALlow missing field on create
     OffsetDateTime::UNIX_EPOCH
 }
 

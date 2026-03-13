@@ -12,8 +12,8 @@ use crate::model::Server;
 #[server]
 pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let servers: Vec<Server> = sqlx::query_as("SELECT * FROM server")
         .fetch_all(pool)
@@ -24,16 +24,16 @@ pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
 #[server]
 pub async fn get_alive_status(server: Server) -> Result<bool, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     Ok(app_state.get_ssh_client(&server).await.is_some())
 }
 
 #[server]
 pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"INSERT INTO server (name, address, username, remote_directory, key_file_path, port)
@@ -54,8 +54,8 @@ pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
 #[server]
 pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"
@@ -86,8 +86,8 @@ pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
 #[server]
 pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM server WHERE id = ?")
         .bind(server_id)
@@ -196,7 +196,8 @@ fn ServerStatus(server: Server) -> impl IntoView {
                         />
                     </Transition>
                 </div>
-            }.into_any()
+            }
+            .into_any()
         }
     }
 }

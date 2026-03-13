@@ -13,8 +13,8 @@ use crate::model::Project;
 #[server]
 pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let projects: Vec<Project> = sqlx::query_as("SELECT * FROM project")
         .fetch_all(pool)
@@ -25,8 +25,8 @@ pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
 #[server]
 pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"INSERT INTO project (name, src_directory, local_directory, post_files, get_files)
@@ -46,8 +46,8 @@ pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
 #[server]
 pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"
@@ -77,8 +77,8 @@ pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
 #[server]
 pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state: AppState = use_context::<AppState>()
-        .ok_or(ServerFnError::new("expected context"))?;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM project WHERE id = ?")
         .bind(project_id)
@@ -86,7 +86,6 @@ pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
         .await?;
     Ok(())
 }
-
 
 /// ------------------------------
 /// Components
@@ -147,7 +146,6 @@ pub fn ProjectList() -> impl IntoView {
     }
 }
 
-
 #[component]
 fn ProjectModifyButton(
     project: Project,
@@ -190,8 +188,6 @@ fn ProjectModifyButton(
         <ProjectDeleteModal project=project delete_modal_opened=delete_modal_opened projects_resource=projects_resource/>
     }
 }
-
-
 
 #[component]
 fn ProjectAddModal(
@@ -288,7 +284,6 @@ fn ProjectEditModal(
     }
 }
 
-
 #[component]
 fn ProjectFormFields(
     #[prop(default = String::new())] name: String,
@@ -320,8 +315,6 @@ fn ProjectFormFields(
         </label>
     }
 }
-
-
 
 #[component]
 fn ProjectDeleteModal(

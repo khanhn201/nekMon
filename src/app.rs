@@ -1,5 +1,5 @@
-use crate::components::server::ServerList;
 use crate::components::project::ProjectList;
+use crate::components::server::ServerList;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes};
