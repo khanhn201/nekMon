@@ -14,9 +14,7 @@ use crate::model::Project;
 pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let projects: Vec<Project> = sqlx::query_as("SELECT * FROM project")
         .fetch_all(pool)
@@ -28,9 +26,7 @@ pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
 pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"INSERT INTO project (name, src_directory, local_directory, post_files, get_files)
@@ -51,9 +47,7 @@ pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
 pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"
@@ -84,9 +78,7 @@ pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
 pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM project WHERE id = ?")
         .bind(project_id)

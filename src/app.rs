@@ -2,9 +2,8 @@ use crate::components::server::ServerList;
 use crate::components::project::ProjectList;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::components::{Route, Router, Routes, Redirect};
+use leptos_router::components::{Route, Router, Routes};
 use leptos_router::path;
-use leptos_router::SsrMode;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -38,7 +37,7 @@ pub fn App() -> impl IntoView {
             </nav>
             <main>
                 <Router>
-                    <Routes fallback=|| "Not found">
+                    <Routes fallback=|| Home>
                         <Route path=path!("/") view=Home/>
                         <Route path=path!("/project/:id") view=Home/>
                     </Routes>

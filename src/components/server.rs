@@ -13,9 +13,7 @@ use crate::model::Server;
 pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let servers: Vec<Server> = sqlx::query_as("SELECT * FROM server")
         .fetch_all(pool)
@@ -27,9 +25,7 @@ pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
 pub async fn get_alive_status(server: Server) -> Result<bool, ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     Ok(app_state.get_ssh_client(&server).await.is_some())
 }
 
@@ -37,9 +33,7 @@ pub async fn get_alive_status(server: Server) -> Result<bool, ServerFnError> {
 pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"INSERT INTO server (name, address, username, remote_directory, key_file_path, port)
@@ -61,9 +55,7 @@ pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
 pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"
@@ -95,9 +87,7 @@ pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
 pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState = use_context::<AppState>()
-    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
-        "AppState not found in context".to_string(),
-    ))?;
+        .ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM server WHERE id = ?")
         .bind(server_id)
@@ -125,7 +115,6 @@ pub fn ServerList() -> impl IntoView {
             >
                 { move || {
                     match servers_resource.get() {
-
                         Some(Ok(servers)) =>
                             servers.into_iter().map(|server| {
                                 let server_clone = server.clone();
@@ -197,10 +186,12 @@ fn ServerStatus(server: Server) -> impl IntoView {
                     }>
                         <Dot
                             stroke_width=8
-                            color=move || if alive.get().unwrap_or(false) {
-                                "var(--color-green-500)"
-                            } else {
-                                "var(--color-red-500)"
+                            color=move || {
+                                if alive.get().unwrap_or(false) {
+                                    "var(--color-green-500)"
+                                } else {
+                                    "var(--color-red-500)"
+                                }
                             }
                         />
                     </Transition>
