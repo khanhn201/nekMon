@@ -12,7 +12,10 @@ use crate::model::Server;
 #[server]
 pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let servers: Vec<Server> = sqlx::query_as("SELECT * FROM server")
         .fetch_all(pool)
@@ -23,14 +26,20 @@ pub async fn get_servers() -> Result<Vec<Server>, ServerFnError> {
 #[server]
 pub async fn get_alive_status(server: Server) -> Result<bool, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("AppState missing");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     Ok(app_state.get_ssh_client(&server).await.is_some())
 }
 
 #[server]
 pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"INSERT INTO server (name, address, username, remote_directory, key_file_path, port)
@@ -51,7 +60,10 @@ pub async fn create_server(server: Server) -> Result<(), ServerFnError> {
 #[server]
 pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let _server = sqlx::query_as::<_, Server>(
         r#"
@@ -82,7 +94,10 @@ pub async fn update_server(server: Server) -> Result<(), ServerFnError> {
 #[server]
 pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM server WHERE id = ?")
         .bind(server_id)
@@ -97,7 +112,7 @@ pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
 
 #[component]
 pub fn ServerList() -> impl IntoView {
-    let servers_resource = Resource::new(|| {}, |_| async { get_servers().await });
+    let servers_resource = LocalResource::new(|| async { get_servers().await });
 
     let add_modal_opened = RwSignal::new(false);
 
@@ -198,7 +213,7 @@ fn ServerStatus(server: Server) -> impl IntoView {
 #[component]
 fn ServerModifyButton(
     server: Server,
-    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
@@ -241,7 +256,7 @@ fn ServerModifyButton(
 #[component]
 fn ServerAddModal(
     add_modal_opened: RwSignal<bool>,
-    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<CreateServer>::new();
     Effect::new(move |_| {
@@ -285,7 +300,7 @@ fn ServerAddModal(
 fn ServerEditModal(
     server: Server,
     edit_modal_opened: RwSignal<bool>,
-    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let server = StoredValue::new(server);
     let submit_action = ServerAction::<UpdateServer>::new();
@@ -338,7 +353,7 @@ fn ServerEditModal(
 fn ServerDeleteModal(
     server: Server,
     delete_modal_opened: RwSignal<bool>,
-    servers_resource: Resource<Result<Vec<Server>, ServerFnError>>,
+    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let server_name = StoredValue::new(server.name);
     let server_id = server.id;

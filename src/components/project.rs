@@ -13,7 +13,10 @@ use crate::model::Project;
 #[server]
 pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let projects: Vec<Project> = sqlx::query_as("SELECT * FROM project")
         .fetch_all(pool)
@@ -24,7 +27,10 @@ pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
 #[server]
 pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"INSERT INTO project (name, src_directory, local_directory, post_files, get_files)
@@ -44,7 +50,10 @@ pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
 #[server]
 pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     let _project = sqlx::query_as::<_, Project>(
         r#"
@@ -74,7 +83,10 @@ pub async fn update_project(project: Project) -> Result<(), ServerFnError> {
 #[server]
 pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
-    let app_state = use_context::<AppState>().expect("could not find AppState in context");
+    let app_state: AppState = use_context::<AppState>()
+    .ok_or(ServerFnError::<server_fn::error::NoCustomError>::ServerError(
+        "AppState not found in context".to_string(),
+    ))?;
     let pool = app_state.pool();
     sqlx::query("DELETE FROM project WHERE id = ?")
         .bind(project_id)
@@ -90,7 +102,7 @@ pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
 
 #[component]
 pub fn ProjectList() -> impl IntoView {
-    let projects_resource = Resource::new(|| {}, |_| async { get_projects().await });
+    let projects_resource = LocalResource::new(|| async { get_projects().await });
 
     let add_modal_opened = RwSignal::new(false);
 
@@ -147,7 +159,7 @@ pub fn ProjectList() -> impl IntoView {
 #[component]
 fn ProjectModifyButton(
     project: Project,
-    projects_resource: Resource<Result<Vec<Project>, ServerFnError>>,
+    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
@@ -192,7 +204,7 @@ fn ProjectModifyButton(
 #[component]
 fn ProjectAddModal(
     add_modal_opened: RwSignal<bool>,
-    projects_resource: Resource<Result<Vec<Project>, ServerFnError>>,
+    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<CreateProject>::new();
     Effect::new(move |_| {
@@ -236,7 +248,7 @@ fn ProjectAddModal(
 fn ProjectEditModal(
     project: Project,
     edit_modal_opened: RwSignal<bool>,
-    projects_resource: Resource<Result<Vec<Project>, ServerFnError>>,
+    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let project = StoredValue::new(project);
     let submit_action = ServerAction::<UpdateProject>::new();
@@ -323,7 +335,7 @@ fn ProjectFormFields(
 fn ProjectDeleteModal(
     project: Project,
     delete_modal_opened: RwSignal<bool>,
-    projects_resource: Resource<Result<Vec<Project>, ServerFnError>>,
+    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let project_name = StoredValue::new(project.name);
     let project_id = project.id;

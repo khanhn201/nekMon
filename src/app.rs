@@ -40,6 +40,7 @@ pub fn App() -> impl IntoView {
                 <Router>
                     <Routes fallback=|| "Not found">
                         <Route path=path!("/") view=Home/>
+                        <Route path=path!("/project/:id") view=Home/>
                     </Routes>
                 </Router>
             </main>

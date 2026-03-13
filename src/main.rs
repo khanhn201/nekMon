@@ -23,9 +23,6 @@ async fn main() {
     let addr = leptos_options.site_addr;
 
     let routes = generate_route_list(App);
-    for route in &routes {
-        leptos::logging::log!("{}", route.path());
-    }
     let app_state = AppState::new().await.unwrap();
 
     async fn graphiql() -> impl IntoResponse {
