@@ -102,13 +102,11 @@ pub fn ServerList() -> impl IntoView {
     let add_modal_opened = RwSignal::new(false);
 
     view! {
-        <div class="flex flex-col bg-slate-100 p-3">
-            <span class="px-3 py-1 text-center">
-                "Servers"
-            </span>
+        <div class="flex flex-col bg-slate-100 p-3 gap-1">
+            <span class="text-center">"Servers"</span>
 
             <Transition
-                fallback=move || view! { <span class="px-3 py-1 text-center">"Loading"</span> }
+                fallback=move || view! { <span>"Loading"</span> }
             >
                 { move || {
                     match servers_resource.get() {
@@ -117,10 +115,10 @@ pub fn ServerList() -> impl IntoView {
                             servers.into_iter().map(|server| {
                                 let server_clone = server.clone();
                                 view! {
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center">
+                                    <div class="flex items-stretch">
+                                        <div class="flex grow items-center">
                                             <ServerStatus server=server/>
-                                            <span class="py-1 text-left">{server_clone.name.clone()}</span>
+                                            <span class="grow align-middle">{server_clone.name.clone()}</span>
                                         </div>
                                         <ServerModifyButton
                                             server=server_clone
@@ -129,7 +127,7 @@ pub fn ServerList() -> impl IntoView {
                                     </div>
                                 }
                             }).collect_view().into_any(),
-                        _ => view!{ <span class="text-center">"Error"</span> }.into_any()
+                        _ => view!{ <span>"Error"</span> }.into_any()
                     }
                 }}
             </Transition>
@@ -140,9 +138,9 @@ pub fn ServerList() -> impl IntoView {
                     add_modal_opened.set(true);
                 }
             >
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 align-middle">
                     <Plus/>
-                    <span>"Add Server"</span>
+                    <span>"Add server"</span>
                 </div>
             </button>
         </div>
@@ -174,8 +172,11 @@ fn ServerStatus(server: Server) -> impl IntoView {
 
     {
         move || {
-            mounted.get().then(|| {
-                view! {
+            if !mounted.get() {
+                return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
+            }
+            view! {
+                <div class="align-middle">
                     <Transition fallback=move || view! {
                         <Dot stroke_width=8 color="var(--color-yellow-500)"/>
                     }>
@@ -188,8 +189,8 @@ fn ServerStatus(server: Server) -> impl IntoView {
                             }
                         />
                     </Transition>
-                }
-            })
+                </div>
+            }.into_any()
         }
     }
 }
@@ -206,7 +207,7 @@ fn ServerModifyButton(
 
     view! {
         <div class="relative">
-            <button class="hover:bg-slate-200 rounded p-1"
+            <button class="hover:bg-slate-200 rounded p-1 align-middle"
                 on:click=move |_| dropdown_opened.update(|v| *v=!*v)
             >
                 <Ellipsis/>
@@ -252,9 +253,8 @@ fn ServerAddModal(
     view! {
         <Modal opened=add_modal_opened>
             <ActionForm action=submit_action>
-                <div class="flex flex-col gap-3 p-3">
-                    <div class="text-center">"Add Server"</div>
-                    <input type="hidden" name="server[id]" value=0/>
+                <div class="flex flex-col gap-1 p-3">
+                    <div class="text-center">"Add server"</div>
                     <ServerFormFields/>
                     <div class="flex justify-end gap-2">
                         <button
@@ -298,8 +298,8 @@ fn ServerEditModal(
     view! {
         <Modal opened=edit_modal_opened>
             <ActionForm action=submit_action>
-                <div class="flex flex-col gap-3 p-3">
-                    <div class="text-center">"Edit Server"</div>
+                <div class="flex flex-col gap-1 p-3">
+                    <div class="text-center">"Edit server"</div>
                     <input type="hidden" name="server[id]" value=server.read_value().id/>
                     <ServerFormFields
                         name=server.read_value().name.clone()
@@ -354,10 +354,9 @@ fn ServerDeleteModal(
     view! {
         <Modal opened=delete_modal_opened>
             <div class="flex flex-col gap-4 p-5 max-w-sm">
-                <div class="text-center">"Delete Server"</div>
+                <div class="text-center">"Delete server"</div>
                 <p class="text-center">
-                    "Are you sure you want to delete "
-                    <span class="font-semibold">{server_name.get_value()}</span>
+                    "Are you sure you want to delete "{server_name.get_value()}
                     "?"
                 </p>
                 // TODO: add the number of runs associated

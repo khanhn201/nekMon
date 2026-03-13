@@ -3,12 +3,17 @@ use time::OffsetDateTime;
 
 use async_graphql::*;
 
+fn default_time() -> OffsetDateTime { // ALlow missing field on create
+    OffsetDateTime::UNIX_EPOCH
+}
+
 // Models: Should be one-to-one with SQL tables
 
 #[derive(SimpleObject, Serialize, Deserialize, Clone, Debug)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Server {
+    #[serde(default)]
     pub id: i64,
     pub name: String,
     pub address: String,
@@ -24,8 +29,10 @@ pub struct Server {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Project {
+    #[serde(default)]
     pub id: i64,
     pub name: String,
+    #[serde(default = "default_time")]
     pub created_at: OffsetDateTime,
 
     pub local_directory: String, // Default prefix for each new run
@@ -39,8 +46,10 @@ pub struct Project {
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 #[cfg_attr(feature = "ssr", graphql(complex))]
 pub struct Run {
+    #[serde(default)]
     pub id: i64,
     pub name: String,
+    #[serde(default = "default_time")]
     pub created_at: OffsetDateTime,
     pub project_id: i64,
     pub server_id: i64,

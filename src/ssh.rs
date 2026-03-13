@@ -3,6 +3,7 @@ use tokio::time::{timeout, Duration};
 
 use crate::model::Server;
 
+#[derive(Clone)]
 pub struct SSHClient {
     client: Client,
 }

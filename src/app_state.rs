@@ -14,7 +14,7 @@ pub struct AppState {
 
 struct AppStateInner {
     pool: SqlitePool,
-    servers: DashMap<i64, Arc<SSHClient>>,
+    servers: DashMap<i64, SSHClient>,
 }
 
 impl AppState {
@@ -37,11 +37,11 @@ impl AppState {
     pub fn pool(&self) -> &SqlitePool {
         &self.inner.pool
     }
-    pub fn servers(&self) -> &DashMap<i64, Arc<SSHClient>> {
+    pub fn servers(&self) -> &DashMap<i64, SSHClient> {
         &self.inner.servers
     }
 
-    pub async fn get_ssh_client(&self, server: &Server) -> Option<Arc<SSHClient>> {
+    pub async fn get_ssh_client(&self, server: &Server) -> Option<SSHClient> {
         let servers = self.servers();
 
         if let Some(ssh_client_ref) = servers.get(&server.id) {
@@ -54,7 +54,7 @@ impl AppState {
 
         match SSHClient::new(server).await {
             Ok(client) => {
-                let client = Arc::new(client);
+                // let client = Arc::new(client);
                 if client.ping().await.is_ok() {
                     servers.insert(server.id, client.clone());
                     return Some(client);

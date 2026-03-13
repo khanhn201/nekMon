@@ -1,8 +1,10 @@
 use crate::components::server::ServerList;
+use crate::components::project::ProjectList;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
-use leptos_router::components::{Route, Router, Routes};
+use leptos_router::components::{Route, Router, Routes, Redirect};
 use leptos_router::path;
+use leptos_router::SsrMode;
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -29,13 +31,19 @@ pub fn App() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/nekMon.css"/>
         <Title text="NekMon"/>
-        <Router>
+        <div class="text-neutral-700 font-mono flex flex-row min-h-screen">
+            <nav class="flex flex-col">
+                <ServerList/>
+                <ProjectList/>
+            </nav>
             <main>
-                <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=path!("/") view=Home/>
-                </Routes>
+                <Router>
+                    <Routes fallback=|| "Not found">
+                        <Route path=path!("/") view=Home/>
+                    </Routes>
+                </Router>
             </main>
-        </Router>
+        </div>
     }
 }
 
@@ -45,17 +53,14 @@ fn Home() -> impl IntoView {
     let on_click = move |_| *count.write() += 1;
 
     view! {
-            <div class="text-neutral-700 font-mono flex flex-row min-h-screen">
-                <ServerList/>
-                <div class="flex flex-row-reverse flex-wrap m-auto">
-                    <button on:click=on_click
-                        class="rounded px-3 py-2 m-1 border-b-4 border-l-2 shadow-lg bg-blue-700 border-blue-800 text-white hover:bg-sky-700">
-                        "+"
-                    </button>
-                    <div class="rounded px-3 py-2 m-1 border-b-4 border-l-2 shadow-lg bg-blue-800 border-blue-900 text-white">
-                        {count}
-                    </div>
-                </div>
+        <div class="flex flex-row-reverse flex-wrap m-auto">
+            <button on:click=on_click
+                class="rounded px-3 py-2 m-1 border-b-4 border-l-2 shadow-lg bg-blue-700 border-blue-800 text-white hover:bg-sky-700">
+                "+"
+            </button>
+            <div class="rounded px-3 py-2 m-1 border-b-4 border-l-2 shadow-lg bg-blue-800 border-blue-900 text-white">
+                {count}
             </div>
+        </div>
     }
 }

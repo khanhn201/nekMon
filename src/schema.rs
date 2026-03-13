@@ -290,7 +290,7 @@ impl Server {
 
         match SSHClient::new(self).await {
             Ok(client) => {
-                servers.insert(self.id, Arc::new(client));
+                servers.insert(self.id, client);
                 Ok(true)
             }
             Err(_) => Ok(false),
