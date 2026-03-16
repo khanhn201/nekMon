@@ -213,8 +213,8 @@ impl MutationRoot {
         #[graphql(validator(regex = "^[a-zA-Z][a-zA-Z0-9_-]*$"))] name: Option<String>,
         remote_directory: Option<String>,
         local_directory: Option<String>,
-        post_file: Option<String>,
-        get_file: Option<String>,
+        post_files: Option<String>,
+        get_files: Option<String>,
         config_json: Option<String>,
         notes: Option<String>,
     ) -> Result<Run> {
@@ -239,8 +239,8 @@ impl MutationRoot {
         .bind(name)
         .bind(remote_directory)
         .bind(local_directory)
-        .bind(post_file)
-        .bind(get_file)
+        .bind(post_files)
+        .bind(get_files)
         .bind(config_json)
         .bind(notes)
         .bind(id)

@@ -94,11 +94,12 @@ pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
 #[component]
 pub fn ProjectList() -> impl IntoView {
     let projects_resource = LocalResource::new(|| async { get_projects().await });
+    provide_context(projects_resource);
 
     let add_modal_opened = RwSignal::new(false);
 
     view! {
-        <div class="flex flex-col bg-slate-100 p-3 gap-1">
+        <div class="flex grow flex-col bg-slate-100 p-3 gap-1">
             <span class="text-center">"Projects"</span>
 
             <Transition
@@ -113,12 +114,11 @@ pub fn ProjectList() -> impl IntoView {
                                 let project_clone = project.clone();
                                 view! {
                                     <div class="flex items-center items-stretch">
-                                        <A href=href attr:class="flex grow rounded hover:bg-slate-200 items-center">
+                                        <A href=href attr:class="flex grow rounded hover:bg-slate-200 items-center pr-3">
                                             <span class="ml-[24px] align-middle">{project_clone.name.clone()}</span>
                                         </A>
                                         <ProjectModifyButton
                                             project=project
-                                            projects_resource=projects_resource
                                         />
                                     </div>
                                 }
@@ -141,7 +141,7 @@ pub fn ProjectList() -> impl IntoView {
             </button>
         </div>
         {move || add_modal_opened.get().then(|| view!{
-            <ProjectAddModal add_modal_opened=add_modal_opened projects_resource=projects_resource/>
+            <ProjectAddModal add_modal_opened=add_modal_opened/>
         })}
     }
 }
@@ -149,7 +149,6 @@ pub fn ProjectList() -> impl IntoView {
 #[component]
 fn ProjectModifyButton(
     project: Project,
-    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
@@ -184,20 +183,20 @@ fn ProjectModifyButton(
                 </button>
             </Menu>
         </div>
-        <ProjectEditModal project=project_clone edit_modal_opened=edit_modal_opened projects_resource=projects_resource/>
-        <ProjectDeleteModal project=project delete_modal_opened=delete_modal_opened projects_resource=projects_resource/>
+        <ProjectEditModal project=project_clone edit_modal_opened=edit_modal_opened/>
+        <ProjectDeleteModal project=project delete_modal_opened=delete_modal_opened/>
     }
 }
 
 #[component]
 fn ProjectAddModal(
     add_modal_opened: RwSignal<bool>,
-    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<CreateProject>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             add_modal_opened.set(false);
+            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
             projects_resource.refetch();
         }
     });
@@ -236,13 +235,13 @@ fn ProjectAddModal(
 fn ProjectEditModal(
     project: Project,
     edit_modal_opened: RwSignal<bool>,
-    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let project = StoredValue::new(project);
     let submit_action = ServerAction::<UpdateProject>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             edit_modal_opened.set(false);
+            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
             projects_resource.refetch();
         }
     });
@@ -285,52 +284,20 @@ fn ProjectEditModal(
 }
 
 #[component]
-fn ProjectFormFields(
-    #[prop(default = String::new())] name: String,
-    #[prop(default = String::new())] local_directory: String,
-    #[prop(default = String::new())] src_directory: String,
-    #[prop(default = String::new())] post_files: String,
-    #[prop(default = String::new())] get_files: String,
-) -> impl IntoView {
-    view! {
-        <label class="flex items-center justify-between gap-3">
-            "Project name"
-            <input class="border rounded px-1 py-1" value=name name="project[name]"/>
-        </label>
-        <label class="flex items-center justify-between gap-3">
-            "Local directory"
-            <input class="border rounded px-1 py-1" value=local_directory name="project[local_directory]"/>
-        </label>
-        <label class="flex items-center justify-between gap-3">
-            "Source directory"
-            <input class="border rounded px-1 py-1" value=src_directory name="project[src_directory]"/>
-        </label>
-        <label class="flex items-center justify-between gap-3">
-            "Source files"
-            <input class="border rounded px-1 py-1" value=post_files name="project[post_files]"/>
-        </label>
-        <label class="flex items-center justify-between gap-3">
-            "Output files"
-            <input class="border rounded px-1 py-1" value=get_files name="project[get_files]"/>
-        </label>
-    }
-}
-
-#[component]
 fn ProjectDeleteModal(
     project: Project,
     delete_modal_opened: RwSignal<bool>,
-    projects_resource: LocalResource<Result<Vec<Project>, ServerFnError>>,
 ) -> impl IntoView {
     let project_name = StoredValue::new(project.name);
     let project_id = project.id;
     let delete_action = Action::new(move |_: &()| async move {
         let _ = delete_project(project_id).await;
-        projects_resource.refetch();
     });
     Effect::new(move |_| {
-        if let Some(()) = delete_action.value().get() {
+        if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
+            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
+            projects_resource.refetch();
         }
     });
     view! {
@@ -362,3 +329,36 @@ fn ProjectDeleteModal(
         </Modal>
     }
 }
+
+#[component]
+fn ProjectFormFields(
+    #[prop(default = String::new())] name: String,
+    #[prop(default = String::new())] local_directory: String,
+    #[prop(default = String::new())] src_directory: String,
+    #[prop(default = String::new())] post_files: String,
+    #[prop(default = String::new())] get_files: String,
+) -> impl IntoView {
+    view! {
+        <label class="flex items-center justify-between gap-3">
+            "Project name"
+            <input class="border rounded px-1 py-1" value=name name="project[name]"/>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+            "Local directory"
+            <input class="border rounded px-1 py-1" value=local_directory name="project[local_directory]"/>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+            "Source directory"
+            <input class="border rounded px-1 py-1" value=src_directory name="project[src_directory]"/>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+            "Source files"
+            <input class="border rounded px-1 py-1" value=post_files name="project[post_files]"/>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+            "Output files"
+            <input class="border rounded px-1 py-1" value=get_files name="project[get_files]"/>
+        </label>
+    }
+}
+

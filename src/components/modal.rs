@@ -41,10 +41,12 @@ pub fn Menu(opened: RwSignal<bool>, children: ChildrenFn) -> impl IntoView {
                 <dialog
                     closedby="any"
                     node_ref=modal_ref
-                    class="absolute bg-white shadow rounded flex flex-col z-50"
+                    class="absolute bg-white shadow rounded z-50"
                     on:close=move |_| opened.set(false)
                 >
-                    {children()}
+                    <div class="w-max flex flex-col">
+                        {children()}
+                    </div>
                 </dialog>
             }
         })

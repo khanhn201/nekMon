@@ -1,5 +1,6 @@
-use crate::components::project::ProjectList;
-use crate::components::server::ServerList;
+use crate::components::project_list::ProjectList;
+use crate::components::project_view::ProjectView;
+use crate::components::server_list::ServerList;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::components::{Route, Router, Routes};
@@ -30,16 +31,16 @@ pub fn App() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/nekMon.css"/>
         <Title text="NekMon"/>
-        <div class="text-neutral-700 font-mono flex flex-row min-h-screen">
+        <div class="flex flex-row h-screen">
             <nav class="flex flex-col">
                 <ServerList/>
                 <ProjectList/>
             </nav>
-            <main>
+            <main class="flex grow h-screen">
                 <Router>
                     <Routes fallback=|| Home>
                         <Route path=path!("/") view=Home/>
-                        <Route path=path!("/project/:id") view=Home/>
+                        <Route path=path!("/project/:id") view=ProjectView/>
                     </Routes>
                 </Router>
             </main>

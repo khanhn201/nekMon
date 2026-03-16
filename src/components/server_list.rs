@@ -103,6 +103,7 @@ pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
 #[component]
 pub fn ServerList() -> impl IntoView {
     let servers_resource = LocalResource::new(|| async { get_servers().await });
+    provide_context(servers_resource);
 
     let add_modal_opened = RwSignal::new(false);
 
@@ -124,10 +125,7 @@ pub fn ServerList() -> impl IntoView {
                                             <ServerStatus server=server/>
                                             <span class="grow align-middle">{server_clone.name.clone()}</span>
                                         </div>
-                                        <ServerModifyButton
-                                            server=server_clone
-                                            servers_resource=servers_resource
-                                        />
+                                        <ServerModifyButton server=server_clone/>
                                     </div>
                                 }
                             }).collect_view().into_any(),
@@ -149,7 +147,7 @@ pub fn ServerList() -> impl IntoView {
             </button>
         </div>
         {move || add_modal_opened.get().then(|| view!{
-            <ServerAddModal add_modal_opened=add_modal_opened servers_resource=servers_resource/>
+            <ServerAddModal add_modal_opened=add_modal_opened/>
         })}
     }
 }
@@ -174,38 +172,35 @@ fn ServerStatus(server: Server) -> impl IntoView {
         }
     });
 
-    {
-        move || {
-            if !mounted.get() {
-                return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
-            }
-            view! {
-                <div class="align-middle">
-                    <Transition fallback=move || view! {
-                        <Dot stroke_width=8 color="var(--color-yellow-500)"/>
-                    }>
-                        <Dot
-                            stroke_width=8
-                            color=move || {
-                                if alive.get().unwrap_or(false) {
-                                    "var(--color-green-500)"
-                                } else {
-                                    "var(--color-red-500)"
-                                }
-                            }
-                        />
-                    </Transition>
-                </div>
-            }
-            .into_any()
+    move || {
+        if !mounted.get() {
+            return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
         }
+        view! {
+            <div class="align-middle">
+                <Transition fallback=move || view! {
+                    <Dot stroke_width=8 color="var(--color-yellow-500)"/>
+                }>
+                    <Dot
+                        stroke_width=8
+                        color=move || {
+                            if alive.get().unwrap_or(false) {
+                                "var(--color-green-500)"
+                            } else {
+                                "var(--color-red-500)"
+                            }
+                        }
+                    />
+                </Transition>
+            </div>
+        }
+        .into_any()
     }
 }
 
 #[component]
 fn ServerModifyButton(
     server: Server,
-    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
@@ -240,20 +235,20 @@ fn ServerModifyButton(
                 </button>
             </Menu>
         </div>
-        <ServerEditModal server=server edit_modal_opened=edit_modal_opened servers_resource=servers_resource/>
-        <ServerDeleteModal server=server_clone delete_modal_opened=delete_modal_opened servers_resource=servers_resource/>
+        <ServerEditModal server=server edit_modal_opened=edit_modal_opened/>
+        <ServerDeleteModal server=server_clone delete_modal_opened=delete_modal_opened/>
     }
 }
 
 #[component]
 fn ServerAddModal(
     add_modal_opened: RwSignal<bool>,
-    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let submit_action = ServerAction::<CreateServer>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             add_modal_opened.set(false);
+            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
             servers_resource.refetch();
         }
     });
@@ -292,13 +287,13 @@ fn ServerAddModal(
 fn ServerEditModal(
     server: Server,
     edit_modal_opened: RwSignal<bool>,
-    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let server = StoredValue::new(server);
     let submit_action = ServerAction::<UpdateServer>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             edit_modal_opened.set(false);
+            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
             servers_resource.refetch();
         }
     });
@@ -345,17 +340,17 @@ fn ServerEditModal(
 fn ServerDeleteModal(
     server: Server,
     delete_modal_opened: RwSignal<bool>,
-    servers_resource: LocalResource<Result<Vec<Server>, ServerFnError>>,
 ) -> impl IntoView {
     let server_name = StoredValue::new(server.name);
     let server_id = server.id;
     let delete_action = Action::new(move |_: &()| async move {
         let _ = delete_server(server_id).await;
-        servers_resource.refetch();
     });
     Effect::new(move |_| {
-        if let Some(()) = delete_action.value().get() {
+        if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
+            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
+            servers_resource.refetch();
         }
     });
     view! {
