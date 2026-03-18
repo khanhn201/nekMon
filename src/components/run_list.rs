@@ -1,17 +1,12 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
-use leptos_router::{
-    hooks::{use_params},
-    params::Params,
-};
-
-
-use lucide_leptos::{Ellipsis, Plus};
+use lucide_leptos::{Ellipsis, Plus, Dot};
 
 use crate::components::modal::{Menu, Modal};
 use crate::model::{Run, Project, Server};
 use crate::components::server_list::get_servers;
+use crate::log_parser::Record;
 
 
 #[server]
@@ -117,6 +112,119 @@ pub async fn create_run(project_id: i64, server_id: i64) -> Result<(), ServerFnE
     Ok(run)
 }
 
+#[server]
+async fn download(run_id: i64) -> Result<bool, ServerFnError> {
+    use crate::app_state::AppState;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
+    let pool = app_state.pool();
+    let servers = app_state.servers();
+
+    let run: Run = sqlx::query_as("SELECT * FROM run WHERE id = ?")
+        .bind(run_id)
+        .fetch_one(pool)
+        .await?;
+
+    let files: Vec<&str> = run
+        .get_files
+        .split(',')
+        .map(|f| f.trim())
+        .filter(|f| !f.is_empty())
+        .collect();
+
+    for file in &files {
+        let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), file);
+        let remote_file = format!("{}/{}", run.remote_directory.trim_end_matches('/'), file);
+        
+        if let Some(parent) = std::path::Path::new(&local_file).parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        if let Some(ssh_client_ref) = servers.get(&run.server_id) {
+            ssh_client_ref
+                .download_file(&local_file, &remote_file)
+                .await?;
+        } else {
+            return Ok(false);
+        }
+    }
+    
+    tokio::spawn(async move {
+        reparse_and_save(run_id, app_state).await;
+    });
+
+    Ok(true)
+}
+
+#[cfg(feature = "ssr")]
+async fn reparse_and_save(run_id: i64, app_state: crate::app_state::AppState) {
+    use crate::log_parser::parse;
+
+    let pool = app_state.pool();
+    let Ok(run) = sqlx::query_as::<_, Run>("SELECT * FROM run WHERE id = ?")
+        .bind(run_id)
+        .fetch_one(pool)
+        .await else { return };
+
+    let files: Vec<&str> = run.get_files
+        .split(',')
+        .map(|f| f.trim())
+        .filter(|f| !f.is_empty())
+        .collect();
+
+    let Some(first) = files.first() else { return };
+    let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), first);
+    let records = parse(&local_file, "default_parser.toml");
+
+    let Ok(json) = serde_json::to_string(&records) else { return };
+
+    let _ = sqlx::query("UPDATE run SET records_json = ? WHERE id = ?")
+        .bind(json)
+        .bind(run_id)
+        .execute(pool)
+        .await;
+}
+
+// #[server]
+// pub async fn parse_logs(run_id: i64) -> Result<Vec<Record>, ServerFnError> {
+//     use crate::app_state::AppState;
+//     use crate::log_parser::parse;
+//     let app_state = use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
+//     let pool = app_state.pool();
+//     let get_files: String = sqlx::query_as("SELECT get_files FROM run WHERE id = ?")
+//         .bind(run_id)
+//         .fetch_one(pool)
+//         .await?;
+//
+//     let files: Vec<&str> = get_files
+//         .split(',')
+//         .map(|f| f.trim())
+//         .filter(|f| !f.is_empty())
+//         .collect();
+//     let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), files[0]);
+//     Ok(parse(&local_file, "default_parser.toml"))
+// }
+
+#[server]
+pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> {
+    use crate::app_state::AppState;
+    let app_state = use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
+    let pool = app_state.pool();
+    
+    let run: Run = sqlx::query_as(
+        "SELECT * FROM run WHERE id = ?"
+    )
+    .bind(run_id)
+    .fetch_one(pool)
+    .await?;
+
+    if run.records_json.is_empty() {
+        return Ok(vec![]);
+    }
+
+    Ok(serde_json::from_str(&run.records_json).unwrap_or_default())
+}
+
 #[component]
 pub fn RunList(project_id: i64) -> impl IntoView {
     let runs_resource = LocalResource::new(move || async move {
@@ -138,7 +246,8 @@ pub fn RunList(project_id: i64) -> impl IntoView {
                             let run_clone = run.clone();
                             view! {
                                 <div class="flex items-center items-stretch">
-                                    <A href="" attr:class="flex grow rounded hover:bg-slate-200 items-center px-3">
+                                    <A href="" attr:class="flex grow rounded hover:bg-slate-200 items-center pr-3">
+                                        <RunStatus run_id=run.id/>
                                         <span class="align-middle">{run_clone.name}</span>
                                     </A>
                                     <RunModifyButton run=run/>
@@ -404,6 +513,56 @@ fn RunEditModal(
         </Modal>
     }
 }
+
+
+#[component]
+fn RunStatus(run_id: i64) -> impl IntoView {
+    // Only render on client - starts as None on SSR
+    let refresh = RwSignal::new(0u32);
+    // let mounted = RwSignal::new(false);
+    // Effect::new(move |_| mounted.set(true));
+
+    let alive = LocalResource::new(move || {
+        let _ = refresh.get();
+        async move {
+            let result = download(run_id).await.unwrap_or(false);
+            // let result = true;
+            set_timeout(
+                move || refresh.update(|n| *n += 1),
+                std::time::Duration::from_millis(10_000),
+            );
+            result
+        }
+    });
+
+    move || {
+        // if !mounted.get() {
+        //     return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
+        // }
+        view! {
+            <div class="align-middle">
+                <Transition fallback=move || view! {
+                    <Dot stroke_width=8 color="var(--color-yellow-500)"/>
+                }>
+                    <Dot
+                        stroke_width=8
+                        color=move || {
+                            if alive.get().unwrap_or(false) {
+                                "var(--color-green-500)"
+                            } else {
+                                "var(--color-red-500)"
+                            }
+                        }
+                    />
+                </Transition>
+            </div>
+        }
+        .into_any()
+    }
+}
+
+
+
 #[component]
 fn RunFormFields(
     name: String,

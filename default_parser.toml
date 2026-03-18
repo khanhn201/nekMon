@@ -1,37 +1,25 @@
 [[block]]
-name = "step"
 contains = "Step"
 start_new_record = true
 columns = [
   { field = "step", index = 1 },
-  { field = "time", index = 3 },
-  { field = "dt", index = 5 },
-  { field = "courant", index = 7 },
-  { field = "c1", index = 8 },
-  { field = "c2", index = 9 }
+  { field = "time", index = 2 },
+  { field = "dt", index = 3 },
+  { field = "cfl", index = 4 },
+  { field = "solve_time", index = 6 },
 ]
 
 [[block]]
-name = "gmres"
 contains = "PRES gmres"
 columns = [
   { field = "gmres_iter", index = 2 },
   { field = "gmres_residual", index = 3 },
-  { field = "gmres_time", index = 7 }
 ]
 
 [[block]]
-name = "div"
-contains = "L1/L2 DIV(V)"
-columns = [
-  { field = "div_l2", index = 3 }
-]
-
-[[block]]
-name = "amp"
 contains = "AMP"
 columns = [
-  { field = "amp1", index = 3 },
-  { field = "amp2", index = 4 },
-  { field = "amp3", index = 5 }
+  { field = "cum_gr", index = 4 },
+  { field = "step_gr", index = 5 },
+  { field = "cum_error", index = 6 }
 ]

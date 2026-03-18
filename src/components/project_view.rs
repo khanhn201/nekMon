@@ -7,6 +7,7 @@ use leptos_router::{
 
 use crate::model::{ Project };
 use crate::components::run_list::RunList;
+use crate::components::run_chart::RunChart;
 
 #[derive(Params, PartialEq, Clone, Debug)]
 pub struct ProjectParams {
@@ -48,7 +49,8 @@ pub fn ProjectView() -> impl IntoView {
                                     <span class="text-center p-3">"Project "{project.name}</span>
                                     <div class="flex flex-row grow bg-slate-100 gap-1">
                                         <RunList project_id=id/>
-                                        <div class="flex grow">Graphs</div>
+                                        // <div class="flex grow">Graphs</div>
+                                        // <RunChart run_id=1/>
                                     </div>
                                 }.into_any(),
                             _ => view!{ <span>"Not found"</span> }.into_any()

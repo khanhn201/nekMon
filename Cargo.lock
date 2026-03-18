@@ -2509,6 +2509,7 @@ dependencies = [
  "console_error_panic_hook",
  "dashmap",
  "futures",
+ "js-sys",
  "leptos",
  "leptos_axum",
  "leptos_meta",
@@ -2517,11 +2518,13 @@ dependencies = [
  "rand 0.9.2",
  "regex",
  "serde",
+ "serde_json",
  "sqlx",
  "time",
  "tokio",
  "toml",
  "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

@@ -156,8 +156,8 @@ pub fn ServerList() -> impl IntoView {
 fn ServerStatus(server: Server) -> impl IntoView {
     // Only render on client - starts as None on SSR
     let refresh = RwSignal::new(0u32);
-    let mounted = RwSignal::new(false);
-    Effect::new(move |_| mounted.set(true));
+    // let mounted = RwSignal::new(false);
+    // Effect::new(move |_| mounted.set(true));
 
     let alive = LocalResource::new(move || {
         let _ = refresh.get();
@@ -173,9 +173,9 @@ fn ServerStatus(server: Server) -> impl IntoView {
     });
 
     move || {
-        if !mounted.get() {
-            return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
-        }
+        // if !mounted.get() {
+        //     return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
+        // }
         view! {
             <div class="align-middle">
                 <Transition fallback=move || view! {

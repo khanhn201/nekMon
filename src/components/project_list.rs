@@ -338,6 +338,9 @@ fn ProjectFormFields(
     #[prop(default = String::new())] post_files: String,
     #[prop(default = String::new())] get_files: String,
 ) -> impl IntoView {
+    // TODO: getfiles and postfiles as list/table instead of having user input comma separated
+    // TODO: let user choose the logfile
+    // TODO: Scroll end of textbox
     view! {
         <label class="flex items-center justify-between gap-3">
             "Project name"

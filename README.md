@@ -11,6 +11,14 @@
 - Tailwindcss
 - Lucide
 
+## Todo
+- [ ] SSH multiplexing
+- [ ] SSH interactive
+- [ ] Docker
+- [ ] Stream logfile changes instead of full download
+- [ ] Local run
+
+
 # Leptos + Axum
 ## Prerequisites
 - Rust/Rustup
@@ -24,13 +32,6 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install --locked cargo-leptos
 rustup target add wasm32-unknown-unknown
 ```
-
-## Todo
-- [ ] SSH multiplexing
-- [ ] SSH interactive
-- [ ] Docker
-
-
 
 ## Running your project
 

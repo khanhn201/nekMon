@@ -62,4 +62,7 @@ pub struct Run {
     pub get_files: String,  // comma separated list of files to retrieve from server
     pub config_json: String,
     pub notes: String,
+    
+    #[serde(default)]
+    pub records_json: String,
 }

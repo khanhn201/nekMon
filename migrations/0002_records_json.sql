@@ -1,0 +1,1 @@
+ALTER TABLE run ADD COLUMN records_json TEXT NOT NULL DEFAULT '';

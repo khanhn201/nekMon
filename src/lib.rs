@@ -3,13 +3,13 @@
 pub mod app;
 pub mod components;
 pub mod model;
+pub mod log_parser;
+pub mod vega_lite;
 
 #[cfg(feature = "ssr")]
 pub mod app_state;
 #[cfg(feature = "ssr")]
 pub mod configuration;
-#[cfg(feature = "ssr")]
-pub mod log_parser;
 #[cfg(feature = "ssr")]
 pub mod schema;
 #[cfg(feature = "ssr")]
