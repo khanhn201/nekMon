@@ -50,7 +50,7 @@ pub fn ProjectView() -> impl IntoView {
                                     <div class="flex flex-row grow bg-slate-100 gap-1">
                                         <RunList project_id=id/>
                                         // <div class="flex grow">Graphs</div>
-                                        // <RunChart run_id=1/>
+                                        <RunChart run_id=1/>
                                     </div>
                                 }.into_any(),
                             _ => view!{ <span>"Not found"</span> }.into_any()

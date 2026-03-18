@@ -36,7 +36,7 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
 
     
     Effect::new(move |_| {
-        refresh.get();
+        // refresh.get();
         let Some(el) = container.get() else { return };
         let spec = serde_json::json!({
             "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
@@ -45,65 +45,72 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
                 { "filter": "datum.step > 0" }
             ],
             "concat": [
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "dt", "type": "quantitative", "title": "dt" }
+                //     }
+                // },
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "cfl", "type": "quantitative", "title": "CFL" }
+                //     }
+                // },
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "solve_time", "type": "quantitative", "title": "Solve Time (s)" }
+                //     }
+                // },
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "gmres_iter", "type": "quantitative", "title": "GMRES Iterations" }
+                //     }
+                // },
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "gmres_residual", "type": "quantitative", "title": "GMRES Residual" }
+                //     }
+                // },
                 {
                     "mark": "line",
                     "encoding": {
                         "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "dt", "type": "quantitative", "title": "dt" }
+                        "y": { 
+                            "field": "cum_error",
+                            "type": "quantitative",
+                            "title": "Cumulative Error",
+                            "scale": {
+                                "type": "log"
+                            }
+                        }
                     }
                 },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "cfl", "type": "quantitative", "title": "CFL" }
-                    }
-                },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "solve_time", "type": "quantitative", "title": "Solve Time (s)" }
-                    }
-                },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "gmres_iter", "type": "quantitative", "title": "GMRES Iterations" }
-                    }
-                },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "gmres_residual", "type": "quantitative", "title": "GMRES Residual" }
-                    }
-                },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "cum_error", "type": "quantitative", "title": "Cumulative Error" }
-                    }
-                },
-                {
-                    "mark": "line",
-                    "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                        "y": { "field": "cum_gr", "type": "quantitative", "title": "Cumulative Growth" }
-                    }
-                }
+                // {
+                //     "mark": "line",
+                //     "encoding": {
+                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                //         "y": { "field": "cum_gr", "type": "quantitative", "title": "Cumulative Growth" }
+                //     }
+                // }
             ],
             "columns": 2,
             "resolve": { "scale": { "x": "shared" } }
         });
  
         vega_embed(el.into(), &spec.to_string());
-        set_timeout(
-            move || refresh.update(|n| *n += 1),
-            std::time::Duration::from_millis(50000),
-        );
+        // set_timeout(
+        //     move || refresh.update(|n| *n += 1),
+        //     std::time::Duration::from_millis(50000),
+        // );
 
     });
         

@@ -222,7 +222,30 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
         return Ok(vec![]);
     }
 
-    Ok(serde_json::from_str(&run.records_json).unwrap_or_default())
+    let mut records: Vec<Record> = serde_json::from_str(&run.records_json).unwrap_or_default();
+    records.pop(); // drop in-progress step
+
+    const MAX_POINTS: usize = 5000;
+    let len = records.len();
+
+    let records = if len > MAX_POINTS {
+        let chunk_size = len / MAX_POINTS;
+        records.chunks(chunk_size)
+            .map(|chunk| {
+                let mut avg = Record::new();
+                for key in chunk[0].keys() {
+                    let mean = chunk.iter()
+                        .filter_map(|r| r.get(key))
+                        .sum::<f64>() / chunk.len() as f64;
+                    avg.insert(key.clone(), mean);
+                }
+                avg
+            })
+            .collect()
+    } else {
+        records
+    };
+    Ok(records)
 }
 
 #[component]
