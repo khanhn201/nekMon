@@ -1,6 +1,4 @@
-use axum::{
-    Router,
-};
+use axum::Router;
 
 use leptos::logging::log;
 use leptos::prelude::*;

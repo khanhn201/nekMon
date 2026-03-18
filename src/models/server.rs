@@ -19,8 +19,6 @@ pub struct Server {
                                   // pub run_script: String // TODO
 }
 
-
-
 /// ------------------------------
 /// Server functions
 /// ------------------------------
@@ -112,5 +110,3 @@ pub async fn delete_server(server_id: i64) -> Result<(), ServerFnError> {
         .await?;
     Ok(())
 }
-
-

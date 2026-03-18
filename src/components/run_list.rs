@@ -1,18 +1,15 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
-use lucide_leptos::{Ellipsis, Plus, Dot};
+use lucide_leptos::{Dot, Ellipsis, Plus};
 
 use crate::components::modal::{Menu, Modal};
 use crate::models::run::*;
 use crate::models::server::*;
 
-
 #[component]
 pub fn RunList(project_id: i64) -> impl IntoView {
-    let runs_resource = LocalResource::new(move || async move {
-        get_runs(project_id).await
-    });
+    let runs_resource = LocalResource::new(move || async move { get_runs(project_id).await });
     provide_context(runs_resource);
     let servers_resource = LocalResource::new(|| async { get_servers().await });
 
@@ -58,12 +55,8 @@ pub fn RunList(project_id: i64) -> impl IntoView {
     }.into_any()
 }
 
-
-
 #[component]
-fn RunModifyButton(
-    run: Run,
-) -> impl IntoView {
+fn RunModifyButton(run: Run) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
     let delete_modal_opened = RwSignal::new(false);
@@ -110,12 +103,8 @@ fn RunModifyButton(
     }
 }
 
-
 #[component]
-fn RunDeleteModal(
-    run: Run,
-    delete_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn RunDeleteModal(run: Run, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let run_name = StoredValue::new(run.name);
     let run_id = run.id;
     let delete_action = Action::new(move |_: &()| async move {
@@ -242,10 +231,7 @@ fn ServerSelect(
 }
 
 #[component]
-fn RunEditModal(
-    run: Run,
-    edit_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn RunEditModal(run: Run, edit_modal_opened: RwSignal<bool>) -> impl IntoView {
     let run = StoredValue::new(run);
     let submit_action = ServerAction::<UpdateRun>::new();
     Effect::new(move |_| {
@@ -297,7 +283,6 @@ fn RunEditModal(
     }
 }
 
-
 #[component]
 fn RunStatus(run_id: i64) -> impl IntoView {
     // Only render on client - starts as None on SSR
@@ -343,8 +328,6 @@ fn RunStatus(run_id: i64) -> impl IntoView {
         .into_any()
     }
 }
-
-
 
 #[component]
 fn RunFormFields(

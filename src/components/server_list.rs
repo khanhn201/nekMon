@@ -108,9 +108,7 @@ fn ServerStatus(server: Server) -> impl IntoView {
 }
 
 #[component]
-fn ServerModifyButton(
-    server: Server,
-) -> impl IntoView {
+fn ServerModifyButton(server: Server) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
     let delete_modal_opened = RwSignal::new(false);
@@ -150,14 +148,13 @@ fn ServerModifyButton(
 }
 
 #[component]
-fn ServerAddModal(
-    add_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ServerAddModal(add_modal_opened: RwSignal<bool>) -> impl IntoView {
     let submit_action = ServerAction::<CreateServer>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             add_modal_opened.set(false);
-            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
+            let servers_resource =
+                expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
             servers_resource.refetch();
         }
     });
@@ -193,16 +190,14 @@ fn ServerAddModal(
 }
 
 #[component]
-fn ServerEditModal(
-    server: Server,
-    edit_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ServerEditModal(server: Server, edit_modal_opened: RwSignal<bool>) -> impl IntoView {
     let server = StoredValue::new(server);
     let submit_action = ServerAction::<UpdateServer>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             edit_modal_opened.set(false);
-            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
+            let servers_resource =
+                expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
             servers_resource.refetch();
         }
     });
@@ -246,10 +241,7 @@ fn ServerEditModal(
 }
 
 #[component]
-fn ServerDeleteModal(
-    server: Server,
-    delete_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ServerDeleteModal(server: Server, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let server_name = StoredValue::new(server.name);
     let server_id = server.id;
     let delete_action = Action::new(move |_: &()| async move {
@@ -258,7 +250,8 @@ fn ServerDeleteModal(
     Effect::new(move |_| {
         if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
-            let servers_resource = expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
+            let servers_resource =
+                expect_context::<LocalResource<Result<Vec<Server>, ServerFnError>>>();
             servers_resource.refetch();
         }
     });

@@ -1,14 +1,12 @@
 use leptos::prelude::*;
 
 use crate::log_parser::Record;
-use crate::vega_lite::vega_embed;
 use crate::models::run::*;
+use crate::vega_lite::vega_embed;
 
 #[component]
 pub fn RunChart(run_id: i64) -> impl IntoView {
-    let records_resource = LocalResource::new(move || async move {
-        get_run_records(run_id).await
-    });
+    let records_resource = LocalResource::new(move || async move { get_run_records(run_id).await });
 
     view! {
         <div class="flex flex-col gap-2 p-4 grow">
@@ -33,7 +31,6 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
     let container: NodeRef<leptos::html::Div> = NodeRef::new();
     let refresh = RwSignal::new(0u32);
 
-    
     Effect::new(move |_| {
         refresh.get();
         let Some(el) = container.get() else { return };
@@ -83,7 +80,7 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
                     "mark": "line",
                     "encoding": {
                         "x": { "field": "time", "type": "quantitative", "title": "Time" },
-                        "y": { 
+                        "y": {
                             "field": "cum_error",
                             "type": "quantitative",
                             "title": "Cumulative Error",
@@ -104,15 +101,14 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
             "columns": 2,
             "resolve": { "scale": { "x": "shared" } }
         });
- 
+
         vega_embed(el.into(), &spec.to_string());
         set_timeout(
             move || refresh.update(|n| *n += 1),
             std::time::Duration::from_millis(5000),
         );
-
     });
-        
+
     view! {
         <div class="flex" node_ref=container />
         // <div id="vis" />

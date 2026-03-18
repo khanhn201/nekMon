@@ -1,20 +1,15 @@
 use leptos::prelude::*;
 
-use leptos_router::{
-    hooks::{use_params},
-    params::Params,
-};
+use leptos_router::{hooks::use_params, params::Params};
 
-use crate::models::project::*;
-use crate::components::run_list::RunList;
 use crate::components::run_chart::RunChart;
+use crate::components::run_list::RunList;
+use crate::models::project::*;
 
 #[derive(Params, PartialEq, Clone, Debug)]
 pub struct ProjectParams {
     pub id: i64,
 }
-
-
 
 #[server]
 pub async fn get_project(project_id: i64) -> Result<Project, ServerFnError> {
@@ -29,15 +24,12 @@ pub async fn get_project(project_id: i64) -> Result<Project, ServerFnError> {
     Ok(project)
 }
 
-
 #[component]
 pub fn ProjectView() -> impl IntoView {
     move || {
         let params = use_params::<ProjectParams>();
-        let id = params.get().unwrap_or(ProjectParams{id:0}).id;
-        let project_resource = LocalResource::new(move || async move {
-            get_project(id).await
-        });
+        let id = params.get().unwrap_or(ProjectParams { id: 0 }).id;
+        let project_resource = LocalResource::new(move || async move { get_project(id).await });
         view! {
             <div class="flex flex-col bg-slate-100 gap-1 grow">
                 <Transition
@@ -58,6 +50,7 @@ pub fn ProjectView() -> impl IntoView {
                     }}
                 </Transition>
             </div>
-        }.into_any()
+        }
+        .into_any()
     }
 }

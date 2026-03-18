@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -49,7 +49,7 @@ pub fn parse(log_path: &str, config_path: &str) -> Vec<Record> {
                 .as_ref()
                 .map(|s| line.contains(s))
                 .unwrap_or(true);
-            
+
             if !matches {
                 continue;
             }
@@ -76,10 +76,10 @@ pub fn parse(log_path: &str, config_path: &str) -> Vec<Record> {
 
                 for col in &block.columns {
                     match floats.get(col.index - 1) {
-                        Some(&val) => { 
-                            record.insert(col.field.clone(), val); 
+                        Some(&val) => {
+                            record.insert(col.field.clone(), val);
                         }
-                        None => {},
+                        None => {}
                     }
                 }
             }

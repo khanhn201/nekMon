@@ -1,8 +1,8 @@
+use crate::log_parser::Record;
+use crate::models::project::Project;
+use crate::models::server::Server;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-use crate::log_parser::Record;
-use crate::models::server::Server;
-use crate::models::project::Project;
 
 /// ------------------------------
 /// Struct: one-to-one with SQL table
@@ -31,12 +31,10 @@ pub struct Run {
     pub get_files: String,  // comma separated list of files to retrieve from server
     pub config_json: String,
     pub notes: String,
-    
+
     #[serde(default)]
     pub records_json: String,
 }
-
-
 
 /// ------------------------------
 /// Server functions
@@ -169,7 +167,7 @@ pub async fn download(run_id: i64) -> Result<bool, ServerFnError> {
     for file in &files {
         let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), file);
         let remote_file = format!("{}/{}", run.remote_directory.trim_end_matches('/'), file);
-        
+
         if let Some(parent) = std::path::Path::new(&local_file).parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -182,7 +180,7 @@ pub async fn download(run_id: i64) -> Result<bool, ServerFnError> {
             return Ok(false);
         }
     }
-    
+
     tokio::spawn(async move {
         reparse_and_save(run_id, app_state).await;
     });
@@ -198,9 +196,13 @@ pub async fn reparse_and_save(run_id: i64, app_state: crate::app_state::AppState
     let Ok(run) = sqlx::query_as::<_, Run>("SELECT * FROM run WHERE id = ?")
         .bind(run_id)
         .fetch_one(pool)
-        .await else { return };
+        .await
+    else {
+        return;
+    };
 
-    let files: Vec<&str> = run.get_files
+    let files: Vec<&str> = run
+        .get_files
         .split(',')
         .map(|f| f.trim())
         .filter(|f| !f.is_empty())
@@ -210,7 +212,9 @@ pub async fn reparse_and_save(run_id: i64, app_state: crate::app_state::AppState
     let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), first);
     let records = parse(&local_file, "default_parser.toml");
 
-    let Ok(json) = serde_json::to_string(&records) else { return };
+    let Ok(json) = serde_json::to_string(&records) else {
+        return;
+    };
 
     let _ = sqlx::query("UPDATE run SET records_json = ? WHERE id = ?")
         .bind(json)
@@ -224,13 +228,11 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
     use crate::app_state::AppState;
     let app_state = use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
-    
-    let run: Run = sqlx::query_as(
-        "SELECT * FROM run WHERE id = ?"
-    )
-    .bind(run_id)
-    .fetch_one(pool)
-    .await?;
+
+    let run: Run = sqlx::query_as("SELECT * FROM run WHERE id = ?")
+        .bind(run_id)
+        .fetch_one(pool)
+        .await?;
 
     if run.records_json.is_empty() {
         return Ok(vec![]);
@@ -244,13 +246,13 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
 
     let records = if len > MAX_POINTS {
         let chunk_size = len / MAX_POINTS;
-        records.chunks(chunk_size)
+        records
+            .chunks(chunk_size)
             .map(|chunk| {
                 let mut avg = Record::new();
                 for key in chunk[0].keys() {
-                    let mean = chunk.iter()
-                        .filter_map(|r| r.get(key))
-                        .sum::<f64>() / chunk.len() as f64;
+                    let mean =
+                        chunk.iter().filter_map(|r| r.get(key)).sum::<f64>() / chunk.len() as f64;
                     avg.insert(key.clone(), mean);
                 }
                 avg

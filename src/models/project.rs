@@ -26,8 +26,6 @@ pub struct Project {
     pub get_files: String,  // comma separated of files to retrieve from server
 }
 
-
-
 /// ------------------------------
 /// Server functions
 /// ------------------------------
@@ -109,4 +107,3 @@ pub async fn delete_project(project_id: i64) -> Result<(), ServerFnError> {
         .await?;
     Ok(())
 }
-

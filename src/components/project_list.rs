@@ -66,9 +66,7 @@ pub fn ProjectList() -> impl IntoView {
 }
 
 #[component]
-fn ProjectModifyButton(
-    project: Project,
-) -> impl IntoView {
+fn ProjectModifyButton(project: Project) -> impl IntoView {
     let dropdown_opened = RwSignal::new(false);
     let edit_modal_opened = RwSignal::new(false);
     let delete_modal_opened = RwSignal::new(false);
@@ -108,14 +106,13 @@ fn ProjectModifyButton(
 }
 
 #[component]
-fn ProjectAddModal(
-    add_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ProjectAddModal(add_modal_opened: RwSignal<bool>) -> impl IntoView {
     let submit_action = ServerAction::<CreateProject>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             add_modal_opened.set(false);
-            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
+            let projects_resource =
+                expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
             projects_resource.refetch();
         }
     });
@@ -151,16 +148,14 @@ fn ProjectAddModal(
 }
 
 #[component]
-fn ProjectEditModal(
-    project: Project,
-    edit_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ProjectEditModal(project: Project, edit_modal_opened: RwSignal<bool>) -> impl IntoView {
     let project = StoredValue::new(project);
     let submit_action = ServerAction::<UpdateProject>::new();
     Effect::new(move |_| {
         if let Some(_) = submit_action.value().get() {
             edit_modal_opened.set(false);
-            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
+            let projects_resource =
+                expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
             projects_resource.refetch();
         }
     });
@@ -203,10 +198,7 @@ fn ProjectEditModal(
 }
 
 #[component]
-fn ProjectDeleteModal(
-    project: Project,
-    delete_modal_opened: RwSignal<bool>,
-) -> impl IntoView {
+fn ProjectDeleteModal(project: Project, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let project_name = StoredValue::new(project.name);
     let project_id = project.id;
     let delete_action = Action::new(move |_: &()| async move {
@@ -215,7 +207,8 @@ fn ProjectDeleteModal(
     Effect::new(move |_| {
         if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
-            let projects_resource = expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
+            let projects_resource =
+                expect_context::<LocalResource<Result<Vec<Project>, ServerFnError>>>();
             projects_resource.refetch();
         }
     });
@@ -283,4 +276,3 @@ fn ProjectFormFields(
         </label>
     }
 }
-

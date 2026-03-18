@@ -2,8 +2,8 @@
 
 pub mod app;
 pub mod components;
-pub mod models;
 pub mod log_parser;
+pub mod models;
 pub mod vega_lite;
 
 #[cfg(feature = "ssr")]
