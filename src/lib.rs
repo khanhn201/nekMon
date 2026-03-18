@@ -2,7 +2,7 @@
 
 pub mod app;
 pub mod components;
-pub mod model;
+pub mod models;
 pub mod log_parser;
 pub mod vega_lite;
 
@@ -10,8 +10,6 @@ pub mod vega_lite;
 pub mod app_state;
 #[cfg(feature = "ssr")]
 pub mod configuration;
-#[cfg(feature = "ssr")]
-pub mod schema;
 #[cfg(feature = "ssr")]
 pub mod ssh;
 

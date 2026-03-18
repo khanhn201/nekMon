@@ -5,7 +5,7 @@ use leptos_router::{
     params::Params,
 };
 
-use crate::model::{ Project };
+use crate::models::project::*;
 use crate::components::run_list::RunList;
 use crate::components::run_chart::RunChart;
 

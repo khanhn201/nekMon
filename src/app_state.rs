@@ -4,7 +4,7 @@ use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 
 use dashmap::DashMap;
 
-use crate::model::Server;
+use crate::models::server::Server;
 use crate::ssh::SSHClient;
 
 #[derive(Clone)]

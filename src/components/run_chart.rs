@@ -1,9 +1,10 @@
 use leptos::prelude::*;
 
-use crate::model::{Run, Project, Server};
-use crate::components::run_list::get_run_records;
 use crate::log_parser::Record;
 use crate::vega_lite::vega_embed;
+use crate::models::run::*;
+use crate::models::server::*;
+use crate::models::project::*;
 
 #[component]
 pub fn RunChart(run_id: i64) -> impl IntoView {
@@ -59,13 +60,13 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
                 //         "y": { "field": "cfl", "type": "quantitative", "title": "CFL" }
                 //     }
                 // },
-                // {
-                //     "mark": "line",
-                //     "encoding": {
-                //         "x": { "field": "step", "type": "quantitative", "title": "Step" },
-                //         "y": { "field": "solve_time", "type": "quantitative", "title": "Solve Time (s)" }
-                //     }
-                // },
+                {
+                    "mark": "line",
+                    "encoding": {
+                        "x": { "field": "time", "type": "quantitative", "title": "Time" },
+                        "y": { "field": "solve_time", "type": "quantitative", "title": "Solve Time (s)" }
+                    }
+                },
                 // {
                 //     "mark": "line",
                 //     "encoding": {
@@ -83,7 +84,7 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
                 {
                     "mark": "line",
                     "encoding": {
-                        "x": { "field": "step", "type": "quantitative", "title": "Step" },
+                        "x": { "field": "time", "type": "quantitative", "title": "Time" },
                         "y": { 
                             "field": "cum_error",
                             "type": "quantitative",

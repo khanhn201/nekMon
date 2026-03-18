@@ -1,7 +1,7 @@
 use async_ssh2_tokio::client::{AuthMethod, Client, ServerCheckMethod};
 use tokio::time::{timeout, Duration};
 
-use crate::model::Server;
+use crate::models::server::Server;
 
 #[derive(Clone)]
 pub struct SSHClient {

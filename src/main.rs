@@ -8,12 +8,8 @@ use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 
-use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
-use async_graphql_axum::GraphQL;
-
 use nekMon::app::*;
 use nekMon::app_state::AppState;
-use nekMon::schema::*;
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
@@ -24,14 +20,6 @@ async fn main() {
 
     let routes = generate_route_list(App);
     let app_state = AppState::new().await.unwrap();
-
-    async fn graphiql() -> impl IntoResponse {
-        response::Html(GraphiQLSource::build().endpoint("/graphql").finish())
-    }
-    let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-        .data(app_state.clone())
-        .finish();
-    let graphql_handler = GraphQL::new(schema);
 
     let app = Router::new()
         .leptos_routes_with_context(
@@ -44,8 +32,7 @@ async fn main() {
             },
         )
         .fallback(leptos_axum::file_and_error_handler(shell))
-        .with_state(leptos_options)
-        .route("/graphql", get(graphiql).post_service(graphql_handler));
+        .with_state(leptos_options);
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
