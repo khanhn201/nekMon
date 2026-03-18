@@ -28,7 +28,7 @@ mod csr {
 #[cfg(feature = "ssr")]
 mod ssr {
     // noop under ssr
-    pub fn vega_embed(el: web_sys::Element, spec: &str) {}
+    pub fn vega_embed(_el: web_sys::Element, _spec: &str) {}
 }
 
 #[cfg(not(feature = "ssr"))]

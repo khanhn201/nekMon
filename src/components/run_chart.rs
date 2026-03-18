@@ -3,8 +3,6 @@ use leptos::prelude::*;
 use crate::log_parser::Record;
 use crate::vega_lite::vega_embed;
 use crate::models::run::*;
-use crate::models::server::*;
-use crate::models::project::*;
 
 #[component]
 pub fn RunChart(run_id: i64) -> impl IntoView {
@@ -37,7 +35,7 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
 
     
     Effect::new(move |_| {
-        // refresh.get();
+        refresh.get();
         let Some(el) = container.get() else { return };
         let spec = serde_json::json!({
             "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
@@ -108,10 +106,10 @@ fn VegaChart(records: Vec<Record>) -> impl IntoView {
         });
  
         vega_embed(el.into(), &spec.to_string());
-        // set_timeout(
-        //     move || refresh.update(|n| *n += 1),
-        //     std::time::Duration::from_millis(50000),
-        // );
+        set_timeout(
+            move || refresh.update(|n| *n += 1),
+            std::time::Duration::from_millis(5000),
+        );
 
     });
         

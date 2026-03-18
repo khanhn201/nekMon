@@ -6,29 +6,6 @@ use lucide_leptos::{Ellipsis, Plus, Dot};
 use crate::components::modal::{Menu, Modal};
 use crate::models::run::*;
 use crate::models::server::*;
-use crate::models::project::*;
-use crate::log_parser::Record;
-
-
-// #[server]
-// pub async fn parse_logs(run_id: i64) -> Result<Vec<Record>, ServerFnError> {
-//     use crate::app_state::AppState;
-//     use crate::log_parser::parse;
-//     let app_state = use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
-//     let pool = app_state.pool();
-//     let get_files: String = sqlx::query_as("SELECT get_files FROM run WHERE id = ?")
-//         .bind(run_id)
-//         .fetch_one(pool)
-//         .await?;
-//
-//     let files: Vec<&str> = get_files
-//         .split(',')
-//         .map(|f| f.trim())
-//         .filter(|f| !f.is_empty())
-//         .collect();
-//     let local_file = format!("{}/{}", run.local_directory.trim_end_matches('/'), files[0]);
-//     Ok(parse(&local_file, "default_parser.toml"))
-// }
 
 
 #[component]

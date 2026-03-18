@@ -6,15 +6,13 @@
 - sqlx
 - async-ssh2-tokio (to be moved to russh)
 - SQLite
-- async-graphql
 - Vega-Lite
 - Tailwindcss
 - Lucide
 
 ## Todo
 - [ ] SSH multiplexing
-- [ ] SSH interactive
-- [ ] Docker
+- [ ] SSH login interactive
 - [ ] Stream logfile changes instead of full download
 - [ ] Local run
 
