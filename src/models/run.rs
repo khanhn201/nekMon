@@ -13,6 +13,15 @@ fn default_time() -> OffsetDateTime {
     OffsetDateTime::UNIX_EPOCH
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
+#[cfg_attr(feature = "ssr", derive(sqlx::Type))]
+#[cfg_attr(feature = "ssr", sqlx(rename_all = "lowercase"))]
+pub enum RunStatus {
+    #[default]
+    Running,
+    Completed,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[cfg_attr(feature = "ssr", derive(sqlx::FromRow))]
 pub struct Run {
@@ -26,6 +35,7 @@ pub struct Run {
 
     pub remote_directory: String,
     pub local_directory: String,
+    pub src_directory: String,
 
     pub post_files: String, // comma separated list of files to copy to server
     pub get_files: String,  // comma separated list of files to retrieve from server
@@ -33,7 +43,10 @@ pub struct Run {
     pub notes: String,
 
     #[serde(default)]
+    #[cfg_attr(feature = "ssr", sqlx(default))]
     pub records_json: String,
+    #[serde(default)]
+    pub status: RunStatus
 }
 
 /// ------------------------------
@@ -47,7 +60,12 @@ pub async fn get_runs(project_id: i64) -> Result<Vec<Run>, ServerFnError> {
     let app_state: AppState =
         use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
-    let runs: Vec<Run> = sqlx::query_as("SELECT * FROM run WHERE project_id = ?")
+    let runs: Vec<Run> = sqlx::query_as(
+        "SELECT id, name, created_at, project_id, server_id, remote_directory, 
+        local_directory, src_directory, 
+        post_files, get_files, config_json, notes, status 
+        FROM run WHERE project_id = ?"
+    )
         .bind(project_id)
         .fetch_all(pool)
         .await?;
@@ -73,11 +91,12 @@ pub async fn update_run(run: Run) -> Result<(), ServerFnError> {
     let app_state: AppState =
         use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
     let pool = app_state.pool();
-    let _run = sqlx::query_as::<_, Run>(
+    let _run: Run = sqlx::query_as(
         r#"
         UPDATE run
         SET
             name = COALESCE(?, name),
+            src_directory = COALESCE(?, src_directory),
             remote_directory = COALESCE(?, remote_directory),
             local_directory = COALESCE(?, local_directory),
             post_files = COALESCE(?, post_files),
@@ -89,6 +108,7 @@ pub async fn update_run(run: Run) -> Result<(), ServerFnError> {
         "#,
     )
     .bind(run.name)
+    .bind(run.src_directory)
     .bind(run.remote_directory)
     .bind(run.local_directory)
     .bind(run.post_files)
@@ -132,16 +152,16 @@ pub async fn create_run(project_id: i64, server_id: i64) -> Result<(), ServerFnE
         name
     );
 
-    let run = sqlx::query_as(
-        r#"INSERT INTO run (name, project_id, server_id, remote_directory, local_directory, post_files, get_files)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+    let _run: Run = sqlx::query_as(
+        r#"INSERT INTO run (name, project_id, server_id, remote_directory, local_directory, src_directory, post_files, get_files)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          RETURNING *"#
     )
-    .bind(name).bind(project_id).bind(server_id).bind(remote_directory).bind(local_directory)
+    .bind(name).bind(project_id).bind(server_id).bind(remote_directory).bind(local_directory).bind(project.src_directory)
     .bind(project.post_files).bind(project.get_files)
     .fetch_one(pool).await?;
 
-    Ok(run)
+    Ok(())
 }
 
 #[server]
@@ -156,6 +176,11 @@ pub async fn download(run_id: i64) -> Result<bool, ServerFnError> {
         .bind(run_id)
         .fetch_one(pool)
         .await?;
+
+    
+    if run.status == RunStatus::Completed {
+        return Ok(true);
+    }
 
     let files: Vec<&str> = run
         .get_files
@@ -187,6 +212,49 @@ pub async fn download(run_id: i64) -> Result<bool, ServerFnError> {
 
     Ok(true)
 }
+
+#[server]
+pub async fn upload(run_id: i64) -> Result<bool, ServerFnError> {
+    use crate::app_state::AppState;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
+    let pool = app_state.pool();
+    let servers = app_state.servers();
+
+    let run: Run = sqlx::query_as("SELECT * FROM run WHERE id = ?")
+        .bind(run_id)
+        .fetch_one(pool)
+        .await?;
+
+    let files: Vec<&str> = run
+        .post_files
+        .split(',')
+        .map(|f| f.trim())
+        .filter(|f| !f.is_empty())
+        .collect();
+
+    let Some(ssh_client_ref) = servers.get(&run.server_id) else {
+        return Ok(false);
+    };
+
+    // Ensure remote directory exists
+    ssh_client_ref
+        .execute(&format!("mkdir -p '{}'", run.remote_directory))
+        .await?;
+
+    for file in &files {
+        let local_file = format!("{}/{}", run.src_directory.trim_end_matches('/'), file);
+        let remote_file = format!("{}/{}", run.remote_directory.trim_end_matches('/'), file);
+
+        ssh_client_ref
+            .upload_file(&local_file, &remote_file)
+            .await?;
+    }
+
+    Ok(true)
+}
+
+
 
 #[cfg(feature = "ssr")]
 pub async fn reparse_and_save(run_id: i64, app_state: crate::app_state::AppState) {
@@ -241,7 +309,7 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
     let mut records: Vec<Record> = serde_json::from_str(&run.records_json).unwrap_or_default();
     records.pop(); // drop in-progress step
 
-    const MAX_POINTS: usize = 5000;
+    const MAX_POINTS: usize = 500;
     let len = records.len();
 
     let records = if len > MAX_POINTS {
@@ -262,4 +330,18 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
         records
     };
     Ok(records)
+}
+
+#[server]
+pub async fn set_run_status(run_id: i64, status: RunStatus) -> Result<(), ServerFnError> {
+    use crate::app_state::AppState;
+    let app_state = use_context::<AppState>()
+        .ok_or(ServerFnError::new("expected context"))?;
+    let pool = app_state.pool();
+    sqlx::query("UPDATE run SET status = ? WHERE id = ?")
+        .bind(status)
+        .bind(run_id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }

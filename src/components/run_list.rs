@@ -1,15 +1,21 @@
 use leptos::prelude::*;
 use leptos_router::components::A;
 
-use lucide_leptos::{Dot, Ellipsis, Plus};
+use lucide_leptos::{Dot, Ellipsis, Plus, Eye, EyeOff};
 
 use crate::components::modal::{Menu, Modal};
 use crate::models::run::*;
 use crate::models::server::*;
 
+use crate::components::project_view::RunState;
+use std::collections::HashMap;
+
 #[component]
-pub fn RunList(project_id: i64) -> impl IntoView {
-    let runs_resource = LocalResource::new(move || async move { get_runs(project_id).await });
+pub fn RunList(
+    project_id: i64,
+    runs_resource: LocalResource<Result<Vec<Run>, ServerFnError>>,
+    run_states: RwSignal<HashMap<i64, RunState>>,
+) -> impl IntoView {
     provide_context(runs_resource);
     let servers_resource = LocalResource::new(|| async { get_servers().await });
 
@@ -24,10 +30,37 @@ pub fn RunList(project_id: i64) -> impl IntoView {
                     {move || match runs_resource.get() {
                         Some(Ok(runs)) => runs.into_iter().map(|run| {
                             let run_clone = run.clone();
+                            let run_states = run_states.get();
+                            let state = run_states.get(&run.id);
+                            let color = state.as_ref().map(|s| s.color).unwrap_or("#94a3b8");
+                            let visible = state.as_ref().map(|s| s.visible);
+                            let hovered = state.as_ref().map(|s| s.hovered);
                             view! {
-                                <div class="flex items-center items-stretch">
-                                    <A href="" attr:class="flex grow rounded hover:bg-slate-200 items-center pr-3">
-                                        <RunStatus run_id=run.id/>
+                                <div 
+                                    class="flex items-center items-stretch hover:bg-slate-200 rounded"
+                                    on:mouseenter=move |_| { if let Some(h) = hovered { h.set(true); } }
+                                    on:mouseleave=move |_| { if let Some(h) = hovered { h.set(false); } }
+                                >
+                                    {move || visible.map(|v| view! {
+                                        <button
+                                            class="hover:bg-slate-300 rounded p-1 align-middle"
+                                            on:click=move |_| v.update(|vis| *vis = !*vis)
+                                        >
+                                            {move || if v.get() {
+                                                view! { <Eye color="var(--color-neutral-500)"/> }.into_any()
+                                            } else {
+                                                view! { <EyeOff color="var(--color-neutral-500)"/> }.into_any()
+                                            }}
+                                        </button>
+                                    })}
+                                    <button class="hover:bg-slate-300 rounded p-1 align-middle">
+                                        <Dot
+                                            stroke_width=12
+                                            color=move || color
+                                        />
+                                    </button>
+                                    <A href="" attr:class="flex grow items-center pr-3">
+                                        // <RunPing run_id=run.id/>
                                         <span class="align-middle">{run_clone.name}</span>
                                     </A>
                                     <RunModifyButton run=run/>
@@ -61,10 +94,22 @@ fn RunModifyButton(run: Run) -> impl IntoView {
     let edit_modal_opened = RwSignal::new(false);
     let delete_modal_opened = RwSignal::new(false);
     let run_clone = run.clone();
+    let run_id = run.id;
+    let run_status = RwSignal::new(run.status.clone());
+
+    let toggle_status_action = ServerAction::<SetRunStatus>::new();
+    let upload_action = ServerAction::<Upload>::new();
+
+    Effect::new(move |_| {
+        if let Some(_) = toggle_status_action.value().get() {
+            let runs_resource = expect_context::<LocalResource<Result<Vec<Run>, ServerFnError>>>();
+            runs_resource.refetch();
+        }
+    });
 
     view! {
         <div class="relative">
-            <button class="hover:bg-slate-200 rounded p-1 align-middle"
+            <button class="hover:bg-slate-300 rounded p-1 align-middle"
                 on:click=move |_| dropdown_opened.update(|v| *v=!*v)
             >
                 <Ellipsis/>
@@ -77,6 +122,41 @@ fn RunModifyButton(run: Run) -> impl IntoView {
                     }
                 >
                     "View logs"
+                </button>
+                <button
+                    class=move || format!(
+                        "px-3 py-1 text-left {}",
+                        if run_status.get() == RunStatus::Running {
+                            "hover:bg-yellow-100 text-yellow-500"
+                        } else {
+                            "hover:bg-green-100 text-green-500"
+                        }
+                    )
+                    disabled=toggle_status_action.pending()
+                    on:click=move |_| {
+                        let next = if run_status.get() == RunStatus::Running {
+                            RunStatus::Completed
+                        } else {
+                            RunStatus::Running
+                        };
+                        toggle_status_action.dispatch(SetRunStatus {run_id: run_id, status: next});
+                        dropdown_opened.set(false);
+                    }
+                >
+                    {move || if run_status.get() == RunStatus::Running {
+                        "Mark completed"
+                    } else {
+                        "Mark running"
+                    }}
+                </button>
+                <button
+                    class="px-3 py-1 hover:bg-gray-100 text-left"
+                    on:click=move |_| {
+                        upload_action.dispatch(Upload { run_id: run_id} );
+                        dropdown_opened.set(false);
+                    }
+                >
+                    "Upload source files"
                 </button>
                 <button
                     class="px-3 py-1 hover:bg-gray-100 text-left"
@@ -107,9 +187,7 @@ fn RunModifyButton(run: Run) -> impl IntoView {
 fn RunDeleteModal(run: Run, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let run_name = StoredValue::new(run.name);
     let run_id = run.id;
-    let delete_action = Action::new(move |_: &()| async move {
-        let _ = delete_run(run_id).await;
-    });
+    let delete_action = ServerAction::<DeleteRun>::new();
     Effect::new(move |_| {
         if let Some(_) = delete_action.value().get() {
             let runs_resource = expect_context::<LocalResource<Result<Vec<Run>, ServerFnError>>>();
@@ -136,7 +214,7 @@ fn RunDeleteModal(run: Run, delete_modal_opened: RwSignal<bool>) -> impl IntoVie
                     <button
                         class="px-3 py-1 bg-red-500 text-white hover:bg-red-600 rounded"
                         disabled=delete_action.pending()
-                        on:click=move |_| { delete_action.dispatch(()); }
+                        on:click=move |_| { delete_action.dispatch(DeleteRun { run_id: run_id } ); }
                     >
                         "Delete"
                     </button>
@@ -251,6 +329,7 @@ fn RunEditModal(run: Run, edit_modal_opened: RwSignal<bool>) -> impl IntoView {
                     <input type="hidden" name="run[server_id]" value=run.read_value().server_id/>
                     <RunFormFields
                         name=run.read_value().name.clone()
+                        src_directory=run.read_value().src_directory.clone()
                         local_directory=run.read_value().local_directory.clone()
                         remote_directory=run.read_value().remote_directory.clone()
                         post_files=run.read_value().post_files.clone()
@@ -284,7 +363,7 @@ fn RunEditModal(run: Run, edit_modal_opened: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn RunStatus(run_id: i64) -> impl IntoView {
+fn RunPing(run_id: i64) -> impl IntoView {
     // Only render on client - starts as None on SSR
     let refresh = RwSignal::new(0u32);
     // let mounted = RwSignal::new(false);
@@ -304,16 +383,13 @@ fn RunStatus(run_id: i64) -> impl IntoView {
     });
 
     move || {
-        // if !mounted.get() {
-        //     return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
-        // }
         view! {
             <div class="align-middle">
                 <Transition fallback=move || view! {
-                    <Dot stroke_width=8 color="var(--color-yellow-500)"/>
+                    <Dot stroke_width=12 color="var(--color-yellow-500)"/>
                 }>
                     <Dot
-                        stroke_width=8
+                        stroke_width=12
                         color=move || {
                             if alive.get().unwrap_or(false) {
                                 "var(--color-green-500)"
@@ -332,6 +408,7 @@ fn RunStatus(run_id: i64) -> impl IntoView {
 #[component]
 fn RunFormFields(
     name: String,
+    src_directory: String,
     local_directory: String,
     remote_directory: String,
     post_files: String,
@@ -343,6 +420,10 @@ fn RunFormFields(
         <label class="flex items-center justify-between gap-3">
             "Run name"
             <input class="border rounded px-1 py-1" value=name name="run[name]"/>
+        </label>
+        <label class="flex items-center justify-between gap-3">
+            "Source directory"
+            <input class="border rounded px-1 py-1" value=src_directory name="run[src_directory]"/>
         </label>
         <label class="flex items-center justify-between gap-3">
             "Local directory"

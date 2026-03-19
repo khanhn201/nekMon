@@ -13,6 +13,7 @@
 ## Todo
 - [ ] SSH multiplexing
 - [ ] SSH login interactive
+- [ ] Docker
 - [ ] Stream logfile changes instead of full download
 - [ ] Local run
 

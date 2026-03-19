@@ -23,3 +23,9 @@ columns = [
   { field = "step_gr", index = 5 },
   { field = "cum_error", index = 6 }
 ]
+
+[[block]]
+contains = "dsum avg"
+columns = [
+  { field = "dsum_avg", index = 1 },
+]

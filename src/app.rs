@@ -31,12 +31,12 @@ pub fn App() -> impl IntoView {
     view! {
         <Stylesheet id="leptos" href="/pkg/nekMon.css"/>
         <Title text="NekMon"/>
-        <div class="flex flex-row h-screen">
+        <div class="flex flex-row h-screen w-screen min-w-0 min-h-0">
             <nav class="flex flex-col">
                 <ServerList/>
                 <ProjectList/>
             </nav>
-            <main class="flex grow h-screen">
+            <main class="flex size-full min-w-0 min-h-0">
                 <Router>
                     <Routes fallback=|| Home>
                         <Route path=path!("/") view=Home/>

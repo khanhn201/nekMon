@@ -44,6 +44,19 @@ pub async fn get_projects() -> Result<Vec<Project>, ServerFnError> {
 }
 
 #[server]
+pub async fn get_project(project_id: i64) -> Result<Project, ServerFnError> {
+    use crate::app_state::AppState;
+    let app_state: AppState =
+        use_context::<AppState>().ok_or(ServerFnError::new("expected context"))?;
+    let pool = app_state.pool();
+    let project: Project = sqlx::query_as("SELECT * FROM project WHERE id = ?")
+        .bind(project_id)
+        .fetch_one(pool)
+        .await?;
+    Ok(project)
+}
+
+#[server]
 pub async fn create_project(project: Project) -> Result<(), ServerFnError> {
     use crate::app_state::AppState;
     let app_state: AppState =

@@ -31,7 +31,7 @@ pub fn ServerList() -> impl IntoView {
                                 view! {
                                     <div class="flex items-stretch">
                                         <div class="flex grow items-center">
-                                            <ServerStatus server=server/>
+                                            <ServerPing server=server/>
                                             <span class="grow align-middle">{server_clone.name.clone()}</span>
                                         </div>
                                         <ServerModifyButton server=server_clone/>
@@ -62,7 +62,7 @@ pub fn ServerList() -> impl IntoView {
 }
 
 #[component]
-fn ServerStatus(server: Server) -> impl IntoView {
+fn ServerPing(server: Server) -> impl IntoView {
     // Only render on client - starts as None on SSR
     let refresh = RwSignal::new(0u32);
     // let mounted = RwSignal::new(false);
@@ -82,16 +82,13 @@ fn ServerStatus(server: Server) -> impl IntoView {
     });
 
     move || {
-        // if !mounted.get() {
-        //     return view! { <Dot stroke_width=8 color="var(--color-yellow-500)"/> }.into_any();
-        // }
         view! {
-            <div class="align-middle">
+            <div class="align-middle p-1">
                 <Transition fallback=move || view! {
-                    <Dot stroke_width=8 color="var(--color-yellow-500)"/>
+                    <Dot stroke_width=12 color="var(--color-yellow-500)"/>
                 }>
                     <Dot
-                        stroke_width=8
+                        stroke_width=12
                         color=move || {
                             if alive.get().unwrap_or(false) {
                                 "var(--color-green-500)"
@@ -243,10 +240,7 @@ fn ServerEditModal(server: Server, edit_modal_opened: RwSignal<bool>) -> impl In
 #[component]
 fn ServerDeleteModal(server: Server, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let server_name = StoredValue::new(server.name);
-    let server_id = server.id;
-    let delete_action = Action::new(move |_: &()| async move {
-        let _ = delete_server(server_id).await;
-    });
+    let delete_action = ServerAction::<DeleteServer>::new();
     Effect::new(move |_| {
         if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
@@ -275,7 +269,7 @@ fn ServerDeleteModal(server: Server, delete_modal_opened: RwSignal<bool>) -> imp
                     <button
                         class="px-3 py-1 bg-red-500 text-white hover:bg-red-600 rounded"
                         disabled=delete_action.pending()
-                        on:click=move |_| { delete_action.dispatch(()); }
+                        on:click=move |_| { delete_action.dispatch(DeleteServer {server_id: server.id}); }
                     >
                         "Delete"
                     </button>

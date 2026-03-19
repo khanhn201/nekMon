@@ -32,9 +32,9 @@ pub fn ProjectList() -> impl IntoView {
                                 let href = format!("/project/{}", project.id);
                                 let project_clone = project.clone();
                                 view! {
-                                    <div class="flex items-center items-stretch">
-                                        <A href=href attr:class="flex grow rounded hover:bg-slate-200 items-center pr-3">
-                                            <span class="ml-[24px] align-middle">{project_clone.name.clone()}</span>
+                                    <div class="flex items-center items-stretch rounded hover:bg-slate-200">
+                                        <A href=href attr:class="flex grow items-center pr-3">
+                                            <span class="ml-[33px] align-middle">{project_clone.name.clone()}</span>
                                         </A>
                                         <ProjectModifyButton
                                             project=project
@@ -74,7 +74,7 @@ fn ProjectModifyButton(project: Project) -> impl IntoView {
 
     view! {
         <div class="relative">
-            <button class="hover:bg-slate-200 rounded p-1 align-middle"
+            <button class="hover:bg-slate-300 rounded p-1 align-middle"
                 on:click=move |_| dropdown_opened.update(|v| *v=!*v)
             >
                 <Ellipsis/>
@@ -200,10 +200,7 @@ fn ProjectEditModal(project: Project, edit_modal_opened: RwSignal<bool>) -> impl
 #[component]
 fn ProjectDeleteModal(project: Project, delete_modal_opened: RwSignal<bool>) -> impl IntoView {
     let project_name = StoredValue::new(project.name);
-    let project_id = project.id;
-    let delete_action = Action::new(move |_: &()| async move {
-        let _ = delete_project(project_id).await;
-    });
+    let delete_action = ServerAction::<DeleteProject>::new();
     Effect::new(move |_| {
         if let Some(_) = delete_action.value().get() {
             delete_modal_opened.set(false);
@@ -232,7 +229,7 @@ fn ProjectDeleteModal(project: Project, delete_modal_opened: RwSignal<bool>) -> 
                     <button
                         class="px-3 py-1 bg-red-500 text-white hover:bg-red-600 rounded"
                         disabled=delete_action.pending()
-                        on:click=move |_| { delete_action.dispatch(()); }
+                        on:click=move |_| { delete_action.dispatch(DeleteProject { project_id: project.id } ); }
                     >
                         "Delete"
                     </button>
