@@ -7,14 +7,16 @@ use crate::components::modal::{Menu, Modal};
 use crate::models::run::*;
 use crate::models::server::*;
 
-use crate::components::project_view::RunState;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[component]
 pub fn RunList(
     project_id: i64,
     runs_resource: LocalResource<Result<Vec<Run>, ServerFnError>>,
-    run_states: RwSignal<HashMap<i64, RunState>>,
+    colors: HashMap<i64, &'static str>,
+    hovered_id: RwSignal<Option<i64>>,
+    hidden_ids: RwSignal<HashSet<i64>>,
 ) -> impl IntoView {
     provide_context(runs_resource);
     let servers_resource = LocalResource::new(|| async { get_servers().await });
@@ -30,29 +32,26 @@ pub fn RunList(
                     {move || match runs_resource.get() {
                         Some(Ok(runs)) => runs.into_iter().map(|run| {
                             let run_clone = run.clone();
-                            let run_states = run_states.get();
-                            let state = run_states.get(&run.id);
-                            let color = state.as_ref().map(|s| s.color).unwrap_or("#94a3b8");
-                            let visible = state.as_ref().map(|s| s.visible);
-                            let hovered = state.as_ref().map(|s| s.hovered);
+                            let run_id = run.id;
+                            let color = colors.get(&run_id).copied().unwrap_or("#94a3b8");
                             view! {
                                 <div 
                                     class="flex items-center items-stretch hover:bg-slate-200 rounded"
-                                    on:mouseenter=move |_| { if let Some(h) = hovered { h.set(true); } }
-                                    on:mouseleave=move |_| { if let Some(h) = hovered { h.set(false); } }
+                                    on:mouseenter=move |_| hovered_id.set(Some(run_id))
+                                    on:mouseleave=move |_| hovered_id.set(None)
                                 >
-                                    {move || visible.map(|v| view! {
-                                        <button
-                                            class="hover:bg-slate-300 rounded p-1 align-middle"
-                                            on:click=move |_| v.update(|vis| *vis = !*vis)
-                                        >
-                                            {move || if v.get() {
-                                                view! { <Eye color="var(--color-neutral-500)"/> }.into_any()
-                                            } else {
-                                                view! { <EyeOff color="var(--color-neutral-500)"/> }.into_any()
-                                            }}
-                                        </button>
-                                    })}
+                                    <button
+                                        class="hover:bg-slate-300 rounded p-1 align-middle"
+                                        on:click=move |_| hidden_ids.update(|set| {
+                                            if set.contains(&run_id) { set.remove(&run_id); } else { set.insert(run_id); }
+                                        })
+                                    >
+                                        {move || if hidden_ids.get().contains(&run_id) {
+                                            view! { <EyeOff color="var(--color-neutral-500)"/> }.into_any()
+                                        } else {
+                                            view! { <Eye color="var(--color-neutral-500)"/> }.into_any()
+                                        }}
+                                    </button>
                                     <button class="hover:bg-slate-300 rounded p-1 align-middle">
                                         <Dot
                                             stroke_width=12
@@ -60,7 +59,7 @@ pub fn RunList(
                                         />
                                     </button>
                                     <A href="" attr:class="flex grow items-center pr-3">
-                                        // <RunPing run_id=run.id/>
+                                        <RunPing run_id=run.id/>
                                         <span class="align-middle">{run_clone.name}</span>
                                     </A>
                                     <RunModifyButton run=run/>
@@ -384,7 +383,7 @@ fn RunPing(run_id: i64) -> impl IntoView {
 
     move || {
         view! {
-            <div class="align-middle">
+            <div class="align-middle p-1">
                 <Transition fallback=move || view! {
                     <Dot stroke_width=12 color="var(--color-yellow-500)"/>
                 }>

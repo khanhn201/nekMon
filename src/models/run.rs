@@ -309,7 +309,7 @@ pub async fn get_run_records(run_id: i64) -> Result<Vec<Record>, ServerFnError> 
     let mut records: Vec<Record> = serde_json::from_str(&run.records_json).unwrap_or_default();
     records.pop(); // drop in-progress step
 
-    const MAX_POINTS: usize = 500;
+    const MAX_POINTS: usize = 5000;
     let len = records.len();
 
     let records = if len > MAX_POINTS {

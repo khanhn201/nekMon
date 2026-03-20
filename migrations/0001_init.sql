@@ -34,19 +34,23 @@ CREATE TABLE run (
     project_id              INTEGER NOT NULL,
     server_id               INTEGER NOT NULL,
 
-    name                    TEXT    NOT NULL UNIQUE,
+    name                    TEXT    NOT NULL,
     notes                   TEXT    NOT NULL DEFAULT '',
     config_json             TEXT    NOT NULL DEFAULT '',
     created_at              TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     remote_directory        TEXT    NOT NULL DEFAULT '',
     local_directory         TEXT    NOT NULL DEFAULT '',
+    src_directory           TEXT    NOT NULL DEFAULT '',
 
     post_files              TEXT    NOT NULL DEFAULT '',
     get_files               TEXT    NOT NULL DEFAULT '',
+    records_json            TEXT    NOT NULL DEFAULT '',
+    status                  TEXT    NOT NULL DEFAULT 'running',
 
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
-    FOREIGN KEY(server_id) REFERENCES server(id) ON DELETE RESTRICT
+    FOREIGN KEY(server_id) REFERENCES server(id) ON DELETE RESTRICT,
+    UNIQUE(project_id, name)
 );
 
 -- ========================

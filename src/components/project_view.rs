@@ -8,6 +8,7 @@ use crate::models::project::*;
 use crate::models::run::*;
 
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 
 pub const RUN_COLORS: &[&str] = &[
@@ -21,13 +22,6 @@ pub struct ProjectParams {
     pub id: i64,
 }
 
-#[derive(Clone, Debug)]
-pub struct RunState {
-    pub color: &'static str, 
-    pub visible: RwSignal<bool>,
-    pub hovered: RwSignal<bool>,
-}
-
 #[component]
 pub fn ProjectView() -> impl IntoView {
     move || {
@@ -35,6 +29,8 @@ pub fn ProjectView() -> impl IntoView {
         let id = params.get().unwrap_or(ProjectParams { id: 0 }).id;
         let project_resource = LocalResource::new(move || async move { get_project(id).await });
         let runs_resource = LocalResource::new(move || async move { get_runs(id).await });
+        let hovered_id: RwSignal<Option<i64>> = RwSignal::new(None);
+        let hidden_ids: RwSignal<HashSet<i64>> = RwSignal::new(HashSet::new());
         view! {
             <div class="flex flex-col bg-slate-100 gap-1 size-full min-w-0 min-h-0">
                 <Transition
@@ -58,24 +54,25 @@ pub fn ProjectView() -> impl IntoView {
                                 let run_ids: Vec<i64> = runs.iter()
                                     .map(|f| { f.id })
                                     .collect();
-                                let run_states = run_ids
-                                    .iter()
+                                let colors: HashMap<i64, &str> = run_ids.iter()
                                     .enumerate()
-                                    .map(|(i, &id)| {
-                                        let color = RUN_COLORS[i % RUN_COLORS.len()];
-                                        (id, RunState {
-                                            color,
-                                            visible: RwSignal::new(true),
-                                            hovered: RwSignal::new(false),
-                                        })
-                                    })
-                                    .collect::<HashMap<i64,RunState>>();
-                                let run_states = RwSignal::new(run_states);
+                                    .map(|(i, &id)| (id, RUN_COLORS[i % RUN_COLORS.len()]))
+                                    .collect();
 
-                                
                                 view!{
-                                    <RunList project_id=id runs_resource=runs_resource run_states=run_states/>
-                                    <Chart run_ids=run_ids run_states=run_states/>
+                                    <RunList
+                                        project_id=id
+                                        runs_resource=runs_resource
+                                        colors=colors.clone()
+                                        hovered_id=hovered_id
+                                        hidden_ids=hidden_ids
+                                    />
+                                    <Chart
+                                        run_ids=run_ids 
+                                        colors=colors
+                                        hovered_id=hovered_id
+                                        hidden_ids=hidden_ids
+                                    />
                                 }.into_any()
                             },
                             _ => view!{ <span>"Not found"</span> }.into_any()

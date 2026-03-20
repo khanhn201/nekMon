@@ -1,1 +1,0 @@
-ALTER TABLE run ADD COLUMN src_directory TEXT NOT NULL DEFAULT '';

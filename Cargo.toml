@@ -29,6 +29,7 @@ lucide-leptos = { version = "2.577.0", features = ["all-icons"] }
 serde_json = "1.0.149"
 js-sys = "0.3.91"
 web-sys = "0.3.91"
+wasm-bindgen-futures = "0.4.64"
 # russh = { version = "0.57.1", optional = true }
 # russh-sftp = { version = "2.1.1", optional = true }
 
