@@ -14,12 +14,16 @@ mod csr {
     #[wasm_bindgen]
     extern "C" {
         pub type VegaView;
+        pub type VegaChangeSet;
 
         #[wasm_bindgen(method)]
         pub fn signal(this: &VegaView, name: &str, value: &JsValue) -> VegaView;
 
         #[wasm_bindgen(method)]
         pub fn run(this: &VegaView);
+        
+        #[wasm_bindgen(method)]
+        pub fn data(this: &VegaView, name: &str, values: &JsValue) -> VegaView;
     }
 
     // Bind the vegaEmbed result object { view, spec, vgSpec }
@@ -60,6 +64,17 @@ mod csr {
             .collect();
         view.signal(name, array.as_ref()).run();
     }
+
+    pub fn vega_set_data(view: &VegaView, name: &str, values: &[serde_json::Value]) {
+        let array: js_sys::Array = values.iter()
+            .filter_map(|v| js_sys::JSON::parse(&v.to_string()).ok())
+            .collect();
+        view.data(name, array.as_ref());
+    }
+
+    pub fn vega_run(view: &VegaView) {
+        view.run();
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -70,6 +85,8 @@ mod ssr {
     pub fn vega_embed(_el: web_sys::Element, _spec: &str, _on_view: impl Fn(VegaView) + 'static) {}
     pub fn vega_set_signal(_view: &VegaView, _name: &str, _value: Option<&str>) {}
     pub fn vega_set_signal_array(_view: &VegaView, _name: &str, _value: &[i64]) {}
+    pub fn vega_set_data(_view: &VegaView, _name: &str, _values: &[serde_json::Value]) {}
+    pub fn vega_run(_view: &VegaView) {}
 }
 
 #[cfg(not(feature = "ssr"))]
